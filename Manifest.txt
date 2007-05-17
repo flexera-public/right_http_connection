@@ -1,0 +1,7 @@
+History.txt
+Manifest.txt
+README.txt
+Rakefile
+lib/right_http_connection.rb
+lib/right_http_connection/version.rb
+setup.rb
