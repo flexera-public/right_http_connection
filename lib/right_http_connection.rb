@@ -37,25 +37,94 @@ require "time"
 # problem then other threads get an error immediately until the lock-out period
 # is over.
 #-----------------------------------------------------------------
-
-
-class Ec2Error < RuntimeError;
-  attr_accessor :errors
-  attr_accessor :errors_str
-  attr_accessor :requestID
-  attr_accessor :http_code
-  def initialize(msg='', http_code=0, errors=[], requestID='')
-    @errors     = errors
-    @requestID  = requestID
-    @http_code  = http_code
-    @errors_str = errors.map{|code, msg| "#{code}: #{msg}"}.join("; ")
-    super(msg)
+  
+  # Exception class to handle any Amazon errors
+  # Attributes:
+  #  message    - the text of error
+  #  errors     - a list of errors as array or a string(==message if raised manually as Ec2Error.new('err_text'))
+  #  request_id - amazon's request id (if exists)
+  #  http_code  - HTTP response error code (if exists)
+class Ec2Error < RuntimeError
+  attr_reader :errors       # Array of errors list(each item is an array - [code,message]) or error string
+  attr_reader :request_id   # Request id (if exists)
+  attr_reader :http_code    # Response HTTP error code
+  def initialize(errors=nil, http_code=nil, request_id=nil)
+    @errors      = errors
+    @request_id  = request_id
+    @http_code   = http_code
+    super(@errors.is_a?(Array) ? @errors.map{|code, msg| "#{code}: #{msg}"}.join("; ") : @errors.to_s)
   end
   def include?(pattern)
-    @errors.each{ |code, msg| return true if code =~ pattern }
-    return false
+    if @errors.is_a?(Array)
+      @errors.each{ |code, msg| return true if code =~ pattern } 
+    else
+      return true if @errors_str =~ pattern 
+    end
+    false
   end
 end
+
+
+class RightAWSErrorHandler
+  
+  def initialize(aws, parser,  errors_list=nil,  max_retry_time=5)
+    @aws           = aws              # Link to RightEc2 | RightSqs | RightS3 instance
+    @parser        = parser           # parser to parse Amazon response
+    @started_at    = Time.now
+    @stop_at       = @started_at  + max_retry_time
+    @errors_list   = errors_list || []
+    @request_delay = 0.1
+    @retries       = 0
+  end
+  
+    # Returns false if 
+  def check(request)
+    result           = false
+    error_found      = false
+    last_errors_text = ''
+    response         = @aws.last_response
+      # log error
+    @aws.logger.warn("##### #{@aws.class.name} returned an error: #{response.code} #{response.message}\n#{response.body} #####")
+    @aws.logger.warn("##### #{@aws.class.name} request: #{request[:server]}:#{request[:port]}#{request[:request].path} ####")
+      # Check response body: if it is an Amazon XML document or not:
+    if response.body[/<\?xml/]         # ... it is a xml document
+      @aws.class.bench_xml.add! do
+        error_parser = RightErrorResponseParser.new
+        REXML::Document.parse_stream(response.body, error_parser)
+        @aws.last_errors     = error_parser.errors
+        @aws.last_request_id = error_parser.requestID
+        last_errors_text     = @aws.last_errors.flatten.join("\n")
+      end
+    else                               # ... it is not a xml document(probably just a html page?)
+      @aws.last_errors     = [response.code, response.message]
+      @aws.last_request_id = '-undefined-'
+      last_errors_text     = response.message
+    end
+      # now - check the error
+    @errors_list.each do |error_to_find|
+      if last_errors_text[/#{error_to_find}/i]
+        error_found = true
+        @aws.logger.warn("##### Retry is needed, error pattern match: #{error_to_find} #####")
+        break
+      end
+    end
+      # check the time has gone from the first error come
+    if error_found
+      if (Time.now < @stop_at)
+        @retries       += 1
+        @request_delay *= 2
+        @aws.logger.warn("##### Retry ##{@retries} is being performed. Sleeping for #{@request_delay} sec. Whole time: #{Time.now-@started_at} sec ####")
+        sleep @request_delay
+        result = @aws.request_info(request, @parser)
+      else
+        @aws.logger.warn("##### Ooops, time is over... ####")
+      end
+    end
+    result
+  end
+  
+end
+
 
 #-----------------------------------------------------------------
 
@@ -267,11 +336,7 @@ public
         # get response and return it
         request  = request_params[:request]
         request['User-Agent'] = get_param(:user_agent) || 'www.RightScale.com'
-        # if we reuse request due to connection problem it may have @body set already
-        # this case - 'data' must be set to nil
-        # (Also: see net/http.rb's set_body_internal)
-        data     = (request.request_body_permitted? && request.body.nil?) ? request_params[:data] : nil
-        response = @http.request(request, data)
+        response = @http.request(request)
         
         error_reset
         return response
@@ -307,6 +372,3 @@ public
 #  #<Errno::ECONNRESET: Connection reset by peer>
 #  #<OpenSSL::SSL::SSLError: SSL_write:: bad write retry>
 end
-
-  # Synonym for RightHttpConnection for old code compartibility
-class HttpConnection < RightHttpConnection; end
