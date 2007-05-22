@@ -67,13 +67,29 @@ end
 
 class RightAWSErrorHandler
   
-  def initialize(aws, parser,  errors_list=nil,  max_retry_time=5)
+  @@reiteration_start_delay = 0.2
+  def self.reiteration_start_delay
+    @@reiteration_start_delay
+  end
+  def self.reiteration_start_delay=(reiteration_start_delay)
+    @@reiteration_start_delay = reiteration_start_delay
+  end
+
+  @@reiteration_time = 5
+  def self.reiteration_time
+    @@reiteration_time
+  end
+  def self.reiteration_time=(reiteration_time)
+    @@reiteration_time = reiteration_time
+  end
+  
+  def initialize(aws, parser,  errors_list=nil,  reiteration_time=nil)
     @aws           = aws              # Link to RightEc2 | RightSqs | RightS3 instance
     @parser        = parser           # parser to parse Amazon response
     @started_at    = Time.now
-    @stop_at       = @started_at  + max_retry_time
+    @stop_at       = @started_at  + (reiteration_time || @@reiteration_time)
     @errors_list   = errors_list || []
-    @request_delay = 0.1
+    @reiteration_delay = @@reiteration_start_delay
     @retries       = 0
   end
   
@@ -111,10 +127,11 @@ class RightAWSErrorHandler
       # check the time has gone from the first error come
     if error_found
       if (Time.now < @stop_at)
-        @retries       += 1
-        @request_delay *= 2
-        @aws.logger.warn("##### Retry ##{@retries} is being performed. Sleeping for #{@request_delay} sec. Whole time: #{Time.now-@started_at} sec ####")
-        sleep @request_delay
+        @retries += 1
+        @aws.logger.warn("##### Retry ##{@retries} is being performed. Sleeping for #{@reiteration_delay} sec. Whole time: #{Time.now-@started_at} sec ####")
+        sleep @reiteration_delay
+        
+        @reiteration_delay *= 2
         result = @aws.request_info(request, @parser)
       else
         @aws.logger.warn("##### Ooops, time is over... ####")
@@ -335,7 +352,7 @@ public
         
         # get response and return it
         request  = request_params[:request]
-        request['User-Agent'] = get_param(:user_agent) || 'www.RightScale.com'
+        request['User-Agent'] = get_param(:user_agent) || ''
         response = @http.request(request)
         
         error_reset
