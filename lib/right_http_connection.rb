@@ -20,12 +20,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
-
-require "net/https"
-require "uri"
-require "time"
-
 #-----------------------------------------------------------------
+#
 # HttpConnection - Maintain a persistent HTTP connection to a remote
 # server. The tricky part is that HttpConnection tries to be smart
 # about errors. It will retry a request a few times and then "refuse"
@@ -36,7 +32,13 @@ require "time"
 # per-thread, this means that if one thread discovers that there is a
 # problem then other threads get an error immediately until the lock-out period
 # is over.
+#
 #-----------------------------------------------------------------
+
+require "net/https"
+require "uri"
+require "time"
+
   
   # Exception class to handle any Amazon errors
   # Attributes:
@@ -83,7 +85,7 @@ class RightAWSErrorHandler
     @@reiteration_time = reiteration_time
   end
   
-  def initialize(aws, parser,  errors_list=nil,  reiteration_time=nil)
+  def initialize(aws, parser,  errors_list=nil,  reiteration_time=nil) #:nodoc:
     @aws           = aws              # Link to RightEc2 | RightSqs | RightS3 instance
     @parser        = parser           # parser to parse Amazon response
     @started_at    = Time.now
@@ -94,7 +96,7 @@ class RightAWSErrorHandler
   end
   
     # Returns false if 
-  def check(request)
+  def check(request)  #:nodoc:
     result           = false
     error_found      = false
     last_errors_text = ''
@@ -145,7 +147,7 @@ end
 
 #-----------------------------------------------------------------
 
-class RightAWSParser
+class RightAWSParser #:nodoc:
   attr_accessor :result
   attr_reader   :xmlpath
   def initialize
@@ -191,7 +193,7 @@ end
 #      PARSERS: Errors
 #-----------------------------------------------------------------
 
-class RightErrorResponseParser < RightAWSParser
+class RightErrorResponseParser < RightAWSParser #:nodoc:
   attr_accessor :errors  # array of hashes: error/message
   attr_accessor :requestID
   def tagend(name)
@@ -211,7 +213,7 @@ end
 #-----------------------------------------------------------------
 
 
-class RightHttpConnection
+class RightHttpConnection #:nodoc:
     # Timeouts
   HTTP_CONNECTION_RETRY_COUNT   = 3   # Number of retries to perform on the first error encountered
   HTTP_CONNECTION_OPEN_TIMEOUT  = 5   # Wait a short time when opening a connection

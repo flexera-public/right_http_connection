@@ -11,9 +11,9 @@ require 'hoe'
 include FileUtils
 require File.join(File.dirname(__FILE__), 'lib', 'right_http_connection', 'version')
 
-AUTHOR = 'colonel'  # can also be an array of Authors
+AUTHOR = 'Rightscale'  # can also be an array of Authors
 EMAIL = "your contact email for bug fixes and info"
-DESCRIPTION = "description of gem"
+DESCRIPTION = "Right HTTP conection module for RightGems"
 GEM_NAME = 'right_http_connection' # what ppl will type to install your gem
 RUBYFORGE_PROJECT = 'right_http_connection' # The unix name for your project
 HOMEPATH = "http://#{RUBYFORGE_PROJECT}.rubyforge.org"
