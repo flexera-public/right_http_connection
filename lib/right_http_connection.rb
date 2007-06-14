@@ -1,244 +1,75 @@
 #
-# Copyright (c) 2007 RightScale Inc, all right reserved
+# Copyright (c) 2007 RightScale Inc, all rights reserved
 #
-#-----------------------------------------------------------------
-#
-# HttpConnection - Maintain a persistent HTTP connection to a remote
-# server. The tricky part is that HttpConnection tries to be smart
-# about errors. It will retry a request a few times and then "refuse"
-# to talk to the server for a while until it does one retry. The intent
-# is that we don't want to stall for many seconds on every request if the
-# remote server went down.
-# In addition, the error retry algorithm is global, as opposed to
-# per-thread, this means that if one thread discovers that there is a
-# problem then other threads get an error immediately until the lock-out period
-# is over.
-#
-#-----------------------------------------------------------------
 
 require "net/https"
 require "uri"
 require "time"
+require "logger"
 
 
 module Rightscale
  
-    # Exception class to handle any Amazon errors
-    # Attributes:
-    #  message    - the text of error
-    #  errors     - a list of errors as array or a string(==message if raised manually as AwsError.new('err_text'))
-    #  request_id - amazon's request id (if exists)
-    #  http_code  - HTTP response error code (if exists)
-  class AwsError < RuntimeError
-    attr_reader :errors       # Array of errors list(each item is an array - [code,message]) or error string
-    attr_reader :request_id   # Request id (if exists)
-    attr_reader :http_code    # Response HTTP error code
-    def initialize(errors=nil, http_code=nil, request_id=nil)
-      @errors      = errors
-      @request_id  = request_id
-      @http_code   = http_code
-      super(@errors.is_a?(Array) ? @errors.map{|code, msg| "#{code}: #{msg}"}.join("; ") : @errors.to_s)
-    end
-    def include?(pattern)
-      if @errors.is_a?(Array)
-        @errors.each{ |code, msg| return true if code =~ pattern } 
-      else
-        return true if @errors_str =~ pattern 
-      end
-      false
-    end
-    
-    def self.on_aws_exception(aws, options={:raise=>true, :log=>true})
- 	        # Only log & notify if not user error
-      if !options[:raise] || system_error?($!)
-        error_text = "#{$!.inspect}\n#{$@}.join('\n')}"
-        puts error_text if options[:puts]
-          # Log the error
-        if options[:log]
-          request  = aws.last_request  ? aws.last_request.path :  '-none-'
-          response = aws.last_response ? "#{aws.last_response.code} -- #{aws.last_response.message} -- #{aws.last_response.body}" : '-none-'
-          aws.logger.error error_text
-          aws.logger.error "Request was:  #{request}"
-          aws.logger.error "Response was: #{response}"
-        end
-      end
-      raise if options[:raise]  # re-raise an exception
-      return nil
-    end
-    
-    def self.system_error?(e)
- 	    !e.is_a?(self) || e.message =~ /InternalError|InsufficientInstanceCapacity|Unavailable/
- 	  end
+=begin rdoc
+HttpConnection maintains a persistent HTTP connection to a remote
+server.  Each instance maintains its own unique connection to the
+HTTP server.  HttpConnection makes a best effort to receive a proper
+HTTP response from the server, although it does not guarantee that
+this response contains a HTTP Success code.
 
-  end
+On low-level errors (TCP/IP errors) HttpConnection invokes a reconnect
+and retry algorithm.  Note that although each HttpConnection object
+has its own connection to the HTTP server, error handling is shared
+across all connections to a server.  For example, if there are three
+connections to www.somehttpserver.com, a timeout error on one of those
+connections will cause all three connections to break and reconnect.
+A connection will not break and reconnect, however, unless a request
+becomes active on it within a certain amount of time after the error
+(as specified by HTTP_CONNECTION_RETRY_DELAY).  An idle connection will not
+break even if other connections to the same server experience errors.
 
+A HttpConnection will retry a request a certain number of times (as
+defined by HTTP_CONNNECTION_RETRY_COUNT).  If all the retries fail,
+an exception is thrown and all HttpConnections associated with a
+server enter a probationary period defined by HTTP_CONNECTION_RETRY_DELAY.
+If the user makes a new request subsequent to entering probation,
+the request will fail immediately with the same exception thrown
+on probation entry.  This is so that if the HTTP server has gone
+down, not every subsequent request must wait for a connect timeout
+before failing.  After the probation period expires, the internal
+state of the HttpConnection is reset and subsequent requests have
+the full number of potential reconnects and retries available to
+them.
+=end
 
-  class AWSErrorHandler
-    
-    @@reiteration_start_delay = 0.2
-    def self.reiteration_start_delay
-      @@reiteration_start_delay
-    end
-    def self.reiteration_start_delay=(reiteration_start_delay)
-      @@reiteration_start_delay = reiteration_start_delay
-    end
+  class HttpConnection 
 
-    @@reiteration_time = 5
-    def self.reiteration_time
-      @@reiteration_time
-    end
-    def self.reiteration_time=(reiteration_time)
-      @@reiteration_time = reiteration_time
-    end
-    
-    def initialize(aws, parser,  errors_list=nil,  reiteration_time=nil) #:nodoc:
-      @aws           = aws              # Link to RightEc2 | RightSqs | RightS3 instance
-      @parser        = parser           # parser to parse Amazon response
-      @started_at    = Time.now
-      @stop_at       = @started_at  + (reiteration_time || @@reiteration_time)
-      @errors_list   = errors_list || []
-      @reiteration_delay = @@reiteration_start_delay
-      @retries       = 0
-    end
-    
-      # Returns false if 
-    def check(request)  #:nodoc:
-      result           = false
-      error_found      = false
-      last_errors_text = ''
-      response         = @aws.last_response
-        # log error
-      request_text_data = "#{request[:server]}:#{request[:port]}#{request[:request].path}"
-      @aws.logger.warn("##### #{@aws.class.name} returned an error: #{response.code} #{response.message}\n#{response.body} #####")
-      @aws.logger.warn("##### #{@aws.class.name} request: #{request_text_data} ####")
-        # Check response body: if it is an Amazon XML document or not:
-      if response.body && response.body[/<\?xml/]         # ... it is a xml document
-        @aws.class.bench_xml.add! do
-          error_parser = RightErrorResponseParser.new
-          REXML::Document.parse_stream(response.body, error_parser)
-          @aws.last_errors     = error_parser.errors
-          @aws.last_request_id = error_parser.requestID
-          last_errors_text     = @aws.last_errors.flatten.join("\n")
-        end
-      else                               # ... it is not a xml document(probably just a html page?)
-        @aws.last_errors     = [[response.code, "#{response.message} (#{request_text_data})"]]
-        @aws.last_request_id = '-undefined-'
-        last_errors_text     = response.message
-      end
-        # now - check the error
-      @errors_list.each do |error_to_find|
-        if last_errors_text[/#{error_to_find}/i]
-          error_found = true
-          @aws.logger.warn("##### Retry is needed, error pattern match: #{error_to_find} #####")
-          break
-        end
-      end
-        # check the time has gone from the first error come
-      if error_found
-        if (Time.now < @stop_at)
-          @retries += 1
-          @aws.logger.warn("##### Retry ##{@retries} is being performed. Sleeping for #{@reiteration_delay} sec. Whole time: #{Time.now-@started_at} sec ####")
-          sleep @reiteration_delay
-          
-          @reiteration_delay *= 2
-          result = @aws.request_info(request, @parser)
-        else
-          @aws.logger.warn("##### Ooops, time is over... ####")
-        end
-      end
-      result
-    end
-    
-  end
+    # Number of times to retry the request after encountering the first error
+    HTTP_CONNECTION_RETRY_COUNT   = 3   
+    # Throw a Timeout::Error if a connection isn't established within this number of seconds
+    HTTP_CONNECTION_OPEN_TIMEOUT  = 5   
+    # Throw a Timeout::Error if no data have been read on this connnection within this number of seconds
+    HTTP_CONNECTION_READ_TIMEOUT  = 30  
+    # Length of the post-error probationary period during which all requests will fail 
+    HTTP_CONNECTION_RETRY_DELAY   = 15  
 
-
-  #-----------------------------------------------------------------
-
-  class RightAWSParser #:nodoc:
-    attr_accessor :result
-    attr_reader   :xmlpath
-    def initialize
-      @xmlpath = ''
-      @result  = false
-      @text    = ''
-      reset
-    end
-    def tag_start(name, attributes)
-      @text = ''
-      tagstart(name, attributes)
-      @xmlpath += @xmlpath.empty? ? name : "/#{name}"
-    end
-    def tag_end(name)
-      @xmlpath[/^(.*?)\/?#{name}$/]
-      @xmlpath = $1
-      tagend(name)
-    end
-    def text(text)
-      @text = text
-      tagtext(text)
-    end
-      # Parser must have a lots of methods 
-      # (see /usr/lib/ruby/1.8/rexml/parsers/streamparser.rb)
-      # We dont need most of them in QEc2Parser and method_missing helps us
-      # to skip their definition
-    def method_missing(method, *params)
-        # if the method is one of known - just skip it ...
-      return if [:comment, :attlistdecl, :notationdecl, :elementdecl, 
-                 :entitydecl, :cdata, :xmldecl, :attlistdecl, :instruction, 
-                 :doctype].include?(method)
-        # ... else - call super to raise an exception
-      super(method, params)
-    end
-      # the functions to be overriden by children (if nessesery)
-    def reset                     ; end
-    def tagstart(name, attributes); end
-    def tagend(name)              ; end
-    def tagtext(text)             ; end
-  end
-
-  #-----------------------------------------------------------------
-  #      PARSERS: Errors
-  #-----------------------------------------------------------------
-
-  class RightErrorResponseParser < RightAWSParser #:nodoc:
-    attr_accessor :errors  # array of hashes: error/message
-    attr_accessor :requestID
-    def tagend(name)
-      case name
-        when 'RequestID' ; @requestID = @text
-        when 'Code'      ; @code      = @text
-        when 'Message'   ; @message   = @text
-        when 'Error'     ; @errors   << [ @code, @message ]
-      end
-    end
-    def reset
-      @errors = []
-    end
-  end
-
-
-  #-----------------------------------------------------------------
-
-
-  class HttpConnection #:nodoc:
-      # Timeouts
-    HTTP_CONNECTION_RETRY_COUNT   = 3   # Number of retries to perform on the first error encountered
-    HTTP_CONNECTION_OPEN_TIMEOUT  = 5   # Wait a short time when opening a connection
-    HTTP_CONNECTION_READ_TIMEOUT  = 30  # Wait a little longer for a response, the serv may have to "think", after all
-    HTTP_CONNECTION_RETRY_DELAY   = 15  # All requests during this period are disabled
     #--------------------
     # class methods
     #--------------------
       # Params hash
-      # :user_agent => 'www.HostName.com'    # User agent
-      # :ca_file    => 'path_to_file'        # A path of a CA certification file in PEM format. The file can contrain several CA certificats.
-      # :logger     => Logger object         # If omitted then logs to STDOUT
+      # :user_agent => 'www.HostName.com'    # String to report as HTTP User agent 
+      # :ca_file    => 'path_to_file'        # Path to a CA certification file in PEM format. The file can contain several CA certificates.  If this parameter isn't set, HTTPS certs won't be verified.
+      # :logger     => Logger object         # If omitted, HttpConnection logs to STDOUT
+      # :exception  => Exception to raise    # The type of exception to raise
+                                             # if a request repeatedly fails. RuntimeError is raised if this parameter is omitted.
     @@params = {}
-    
+   
+    # Query the global (class-level) parameters
     def self.params
       @@params
     end
-    
+   
+    # Set the global (class-level) parameters
     def self.params=(params)
       @@params = params
     end
@@ -251,6 +82,14 @@ module Rightscale
     attr_accessor :params      # see @@params
     attr_accessor :logger
 
+=begin rdoc
+      Params hash:
+       :user_agent => 'www.HostName.com'     String to report as HTTP User agent 
+       :ca_file    => 'path_to_file'         A path of a CA certification file in PEM format. The file can contain several CA certificates.
+       :logger     => Logger object          If omitted, HttpConnection logs to STDOUT
+       :exception  => Exception to raise     The type of exception to raise if a request repeatedly fails. RuntimeError is raised if this parameter is omitted.
+                                            
+=end 
     def initialize(params={})
       @params = params     
       @http   = nil
@@ -269,6 +108,7 @@ module Rightscale
     # Retry state - Keep track of errors on a per-server basis
     #--------------
     @@state = {}  # retry state indexed by server: consecutive error count, error time, and error
+    @@eof   = {}
 
     # number of consecutive errors seen for server, 0 all is ok
     def error_count
@@ -301,23 +141,50 @@ module Rightscale
     end
 
     def err_header
-      return "#{self.class.name} : "
+      return "#{self.class.name} :"
     end
     
-    #---------------------------------------------------------------------
-    # Start a fresh connection. Close any existing one first.
-    #---------------------------------------------------------------------
+      # Adds new EOF timestamp.
+      # Returns the number of seconds to wait before new conection retry:
+      #  0.5, 1, 2, 4, 8
+    def add_eof
+      (@@eof[@server] ||= []).unshift Time.now
+      0.25 * 2 ** @@eof[@server].size
+    end
+
+      # Returns first EOF timestamp or nul if have no EOFs being tracked.
+    def eof_time
+      @@eof[@server] && @@eof[@server].last
+    end
+    
+      # Returns true if we are receiving EOFs during last HTTP_CONNECTION_RETRY_DELAY seconds
+      # and there were no successful response from server
+    def raise_on_eof_exception?
+      @@eof[@server].blank? ? false : ( (Time.now.to_i-HTTP_CONNECTION_RETRY_DELAY) > @@eof[@server].last.to_i )
+    end 
+    
+      # Reset a list of EOFs for this server.
+      # This is being called when we have got an successful response from server.
+    def eof_reset
+      @@eof.delete(@server)
+    end
+
+    # Start a fresh connection. The object closes any existing connection and
+    # opens a new one.
     def start(request_params)
       # close the previous if exists
       @http.finish if @http && @http.started?
       # create new connection
-      @server = request_params[:server]
-      @port   = request_params[:port]
+      @server   = request_params[:server]
+      @port     = request_params[:port]
+      @protocol = request_params[:protocol] || (@port==443 ? 'https' : 'http')
+      
       @logger.info("Opening new HTTP connection to #{@server}")
       @http = Net::HTTP.new(@server, @port)
       @http.open_timeout = HTTP_CONNECTION_OPEN_TIMEOUT
       @http.read_timeout = HTTP_CONNECTION_READ_TIMEOUT
-      if @port == 443
+      
+      if @protocol == 'https'
         verifyCallbackProc = Proc.new{ |ok, x509_store_ctx|
           code = x509_store_ctx.error
           msg = x509_store_ctx.error_string
@@ -339,19 +206,27 @@ module Rightscale
 
   public
     
-    #-----------------------------
-    # Send HTTP request to server
-    #-----------------------------
-      
+=begin rdoc    
+    Send HTTP request to server
+
+     request_params hash:
+     :server   => 'www.HostName.com'   Hostname or IP address of HTTP server
+     :port     => '80'                 Port of HTTP server 
+     :protocol => 'https'              http and https are supported on any port 
+     :request  => 'requeststring'      Fully-formed HTTP request to make
+
+    Raises RuntimeError, Interrupt, and params[:exception] (if specified in new).
+    
+=end
     def request(request_params)
       loop do
         # if we are inside a delay between retries: no requests this time!
         if error_count > HTTP_CONNECTION_RETRY_COUNT \
         && error_time + HTTP_CONNECTION_RETRY_DELAY > Time.now
-          @logger.warn(err_header + " re-raising same error: #{banana_message} " +
-                      "-- error count: #{error_count}, error age: #{Time.now - error_time}")  
-          # TODO: figure out how to remove dependency on AwsError from this class...
-          raise AwsError.new(banana_message)
+          @logger.warn("#{err_header} re-raising same error: #{banana_message} " +
+                      "-- error count: #{error_count}, error age: #{Time.now.to_i - error_time.to_i}")  
+          exception = get_param(:exception) || RuntimeError
+          raise exception.new(banana_message)
         end
       
         # try to connect server(if connection does not exist) and get response data
@@ -365,24 +240,43 @@ module Rightscale
           response = @http.request(request)
           
           error_reset
+          eof_reset
           return response
+
+        # We treat EOF errors and the timeout/network errors differently.  Both
+        # are tracked in different statistics blocks.  Note below that EOF
+        # errors will sleep for a certain (exponentially increasing) period.
+        # Other errors don't sleep because there is already an inherent delay
+        # in them; connect and read timeouts (for example) have already
+        # 'slept'.  It is still not clear which way we should treat errors
+        # like RST and resolution failures.  For now, there is no additional
+        # delay for these errors although this may change in the future.
         
-        # EOFError means the server closed the connection on us, that's not a problem, we
-        # just start a new one (without logging any error)
+        # EOFError means the server closed the connection on us.
         rescue EOFError => e
-          @logger.debug(err_header + " server #{@server} closed connection")
+          @logger.debug("#{err_header} server #{@server} closed connection")
           @http = nil
+          
+            # if we have waited long enough - raise an exception...
+          if raise_on_eof_exception?
+            exception = get_param(:exception) || RuntimeError
+            @logger.warn("#{err_header} raising #{exception} due to permanent EOF being received from #{@server}, error age: #{Time.now.to_i - eof_time.to_i}")  
+            raise exception.new("Permanent EOF is being received from #{@server}.")
+          else
+              # ... else just sleep a bit before new retry
+            sleep(add_eof)
+          end 
           
         rescue Exception => e  # See comment at bottom for the list of errors seen...
           # if ctrl+c is pressed - we have to reraise exception to terminate proggy 
           if e.is_a?(Interrupt) && !( e.is_a?(Errno::ETIMEDOUT) || e.is_a?(Timeout::Error))
-            @logger.debug(err_header + " request to server #{@server} interrupted by ctrl-c")
+            @logger.debug( "#{err_header} request to server #{@server} interrupted by ctrl-c")
             @http = nil
             raise
           end
           # oops - we got a banana: log it
           error_add(e.message)
-          @logger.warn(err_header + " request failure count: #{error_count}, exception: #{e.inspect}")
+          @logger.warn("#{err_header} request failure count: #{error_count}, exception: #{e.inspect}")
           @http = nil
         end
       end

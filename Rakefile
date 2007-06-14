@@ -13,7 +13,7 @@ require File.join(File.dirname(__FILE__), 'lib', 'right_http_connection', 'versi
 
 AUTHOR = 'Rightscale'  # can also be an array of Authors
 EMAIL = "your contact email for bug fixes and info"
-DESCRIPTION = "Right HTTP conection module for RightGems"
+DESCRIPTION = "Right HTTP connection module for RightGems"
 GEM_NAME = 'right_http_connection' # what ppl will type to install your gem
 RUBYFORGE_PROJECT = 'right_http_connection' # The unix name for your project
 HOMEPATH = "http://#{RUBYFORGE_PROJECT}.rubyforge.org"
