@@ -2,3 +2,7 @@
 
 + 1 major enhancement:
   + Initial release
+
++++ 0.1.2 2007-6-27
+
+No major changes.
