@@ -232,11 +232,21 @@ them.
         # try to connect server(if connection does not exist) and get response data
         begin
           # (re)open connection to server if none exists
+          # TODO TRB 8/2/07 - you also need to get a new connection if the
+          # server, port, or proto has changed in the request_params
           start(request_params) unless @http
           
           # get response and return it
           request  = request_params[:request]
           request['User-Agent'] = get_param(:user_agent) || ''
+
+          # Detect if the body is a streamable object like a file or socket.  If so, stream that
+          # bad boy.
+          if(request.body && request.body.respond_to?(:read))
+            body = request.body
+            request.content_length = body.respond_to?(:lstat) ? body.lstat.size : body.size 
+            request.body_stream = request.body
+          end
           response = @http.request(request)
           
           error_reset
