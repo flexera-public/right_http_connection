@@ -218,7 +218,7 @@ them.
     Raises RuntimeError, Interrupt, and params[:exception] (if specified in new).
     
 =end
-    def request(request_params)
+    def request(request_params, &block)
       loop do
         # if we are inside a delay between retries: no requests this time!
         if error_count > HTTP_CONNECTION_RETRY_COUNT \
@@ -247,7 +247,7 @@ them.
             request.content_length = body.respond_to?(:lstat) ? body.lstat.size : body.size 
             request.body_stream = request.body
           end
-          response = @http.request(request)
+          response = @http.request(request, &block)
           
           error_reset
           eof_reset
