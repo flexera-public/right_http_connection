@@ -25,3 +25,6 @@ r1411 | todd | 2007-08-03 15:14:45 -0700 (Fri, 03 Aug 2007) | 3 lines
 (#373) Stream uploads (PUTs) if the source is a file, stream, or anything
 read()-able
 
++++ 1.1.0 2007-08-15
+Initial public release
+
