@@ -10,3 +10,21 @@ No major changes.
 +++ 0.1.3 2007-7-09
 
 No change.
+
++++ 0.1.4 2007-8-10
+
+------------------------------------------------------------------------
+r1442 | todd | 2007-08-07 15:45:24 -0700 (Tue, 07 Aug 2007) | 654 lines
+
+(#373) Add support in right_http_connection for bailing out to a block while
+reading the HTTP response (to support GET streaming...)
+
+------------------------------------------------------------------------
+r1411 | todd | 2007-08-03 15:14:45 -0700 (Fri, 03 Aug 2007) | 3 lines
+
+(#373) Stream uploads (PUTs) if the source is a file, stream, or anything
+read()-able
+
++++ 1.1.0 2007-08-15
+Initial public release
+
