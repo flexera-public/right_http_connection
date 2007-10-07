@@ -173,13 +173,13 @@ them.
     # opens a new one.
     def start(request_params)
       # close the previous if exists
-      @http.finish if @http && @http.started?
+      finish
       # create new connection
       @server   = request_params[:server]
       @port     = request_params[:port]
-      @protocol = request_params[:protocol] || (@port==443 ? 'https' : 'http')
+      @protocol = request_params[:protocol]
       
-      @logger.info("Opening new HTTP connection to #{@server}")
+      @logger.info("Opening new #{@protocol.upcase} connection to #@server:#@port")
       @http = Net::HTTP.new(@server, @port)
       @http.open_timeout = HTTP_CONNECTION_OPEN_TIMEOUT
       @http.read_timeout = HTTP_CONNECTION_READ_TIMEOUT
@@ -205,7 +205,7 @@ them.
     end
 
   public
-    
+
 =begin rdoc    
     Send HTTP request to server
 
@@ -231,10 +231,15 @@ them.
       
         # try to connect server(if connection does not exist) and get response data
         begin
-          # (re)open connection to server if none exists
-          # TODO TRB 8/2/07 - you also need to get a new connection if the
-          # server, port, or proto has changed in the request_params
-          start(request_params) unless @http
+          request_params[:protocol] ||= (request_params[:port] == 443 ? 'https' : 'http')
+          # (re)open connection to server if none exists or params has changed
+          unless @http          && 
+                 @http.started? &&
+                 @server   == request_params[:server] &&
+                 @port     == request_params[:port]   &&
+                 @protocol == request_params[:protocol]
+            start(request_params)
+          end
           
           # get response and return it
           request  = request_params[:request]
@@ -289,6 +294,14 @@ them.
           @logger.warn("#{err_header} request failure count: #{error_count}, exception: #{e.inspect}")
           @http = nil
         end
+      end
+    end
+
+    def finish(reason = '')
+      if @http && @http.started?
+        reason = ", reason: '#{reason}'" unless reason.blank?
+        @logger.info("Closing #{@http.use_ssl? ? 'HTTPS' : 'HTTP'} connection to #{@http.address}:#{@http.port}#{reason}")
+        @http.finish 
       end
     end
 
