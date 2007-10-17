@@ -28,3 +28,5 @@ read()-able
 +++ 1.1.0 2007-08-15
 Initial public release
 
++++ 1.2.0 10/05/2007
+Error handling improved
