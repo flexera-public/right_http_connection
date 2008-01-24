@@ -31,6 +31,6 @@ Initial public release
 
 == 1.2.1
 
-* r????, konstantin, 01-24-08 11:12:00
+* r2648, konstantin, 01-24-08 11:12:00
   * net_fix.rb moved from right_aws gem to fix the problem with uploading the streamable
     objects to S3
