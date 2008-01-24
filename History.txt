@@ -28,3 +28,9 @@ Initial public release
 * r1867, konstantin, 2007-10-05 06:19:45
   * # 220, (re)open connection to server if none exists or connection params 
     have changed 
+
+== 1.2.1
+
+* r????, konstantin, 01-24-08 11:12:00
+  * net_fix.rb moved from right_aws gem to fix the problem with uploading the streamable
+    objects to S3

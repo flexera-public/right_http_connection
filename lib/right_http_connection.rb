@@ -7,12 +7,14 @@ require "uri"
 require "time"
 require "logger"
 
+require "net_fix"
+
 
 module RightHttpConnection #:nodoc:
   module VERSION #:nodoc:
     MAJOR = 1
     MINOR = 2
-    TINY  = 0
+    TINY  = 1
 
     STRING = [MAJOR, MINOR, TINY].join('.')
   end
@@ -112,6 +114,34 @@ them.
 
     def get_param(name)
       @params[name] || @@params[name]
+    end
+
+    # Query for the maximum size (in bytes) of a single read from the underlying
+    # socket.  For bulk transfer, especially over fast links, this is value is
+    # critical to performance.
+    def socket_read_size?
+      Net::BufferedIO.socket_read_size?
+    end
+
+    # Set the maximum size (in bytes) of a single read from the underlying
+    # socket.  For bulk transfer, especially over fast links, this is value is
+    # critical to performance.
+    def socket_read_size=(newsize)
+      Net::BufferedIO.socket_read_size=(newsize)
+    end
+ 
+    # Query for the maximum size (in bytes) of a single read from local data
+    # sources like files.  This is important, for example, in a streaming PUT of a
+    # large buffer.
+    def local_read_size?
+      Net::HTTPGenericRequest.local_read_size?
+    end
+
+    # Set the maximum size (in bytes) of a single read from local data
+    # sources like files.  This can be used to tune the performance of, for example,  a streaming PUT of a
+    # large buffer.
+    def local_read_size=(newsize)
+      Net::HTTPGenericRequest.local_read_size=(newsize)
     end
 
   private
@@ -328,3 +358,4 @@ them.
   end
   
 end
+
