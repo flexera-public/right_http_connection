@@ -145,10 +145,7 @@ module Net
         begin
           res = HTTPResponse.read_new(@socket)
           # if we expected 100-continue then send a body
-          if res.is_a?(HTTPContinue)           && 
-             (req.is_a?(Post)||req.is_a?(Put)) && 
-             req['expect']=='100-continue'     &&
-             req['content-length'].to_i > 0
+          if res.is_a?(HTTPContinue) && send_only && req['content-length'].to_i > 0
             req.exec @socket, @curr_http_version, edit_path(req.path), :body
           end
         end while res.kind_of?(HTTPContinue)
