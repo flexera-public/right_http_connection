@@ -35,7 +35,7 @@ Initial public release
   * net_fix.rb moved from right_aws gem to fix the problem with uploading the streamable
     objects to S3
 
-* ????, konstantin, 02-02-08 23:56:00 +03:00
+* r2764, konstantin, 02-08-08 00:05:00 +03:00
   * "RightAws: incompatible Net::HTTP monkey-patch" exception is raised if our net_fix
     patch was overriden (by attachment_fu for example, to avoid this load attachment_fu 
     before loading the right_http_connection gem).
