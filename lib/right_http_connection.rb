@@ -322,18 +322,20 @@ them.
               # ... else just sleep a bit before new retry
             sleep(add_eof)
           end 
-          
         rescue Exception => e  # See comment at bottom for the list of errors seen...
+          @http = nil
           # if ctrl+c is pressed - we have to reraise exception to terminate proggy 
           if e.is_a?(Interrupt) && !( e.is_a?(Errno::ETIMEDOUT) || e.is_a?(Timeout::Error))
             @logger.debug( "#{err_header} request to server #{@server} interrupted by ctrl-c")
-            @http = nil
             raise
+          elsif e.is_a?(ArgumentError) && e.message.include?('wrong number of arguments (5 for 4)')
+            # seems our net_fix patch was overriden...
+            exception = get_param(:exception) || RuntimeError
+            raise exception.new('incompatible Net::HTTP monkey-patch')
           end
           # oops - we got a banana: log it
           error_add(e.message)
           @logger.warn("#{err_header} request failure count: #{error_count}, exception: #{e.inspect}")
-          @http = nil
         end
       end
     end
