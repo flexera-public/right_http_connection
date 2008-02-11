@@ -7,6 +7,7 @@ require "uri"
 require "time"
 require "logger"
 
+$:.unshift(File.dirname(__FILE__))
 require "net_fix"
 
 
