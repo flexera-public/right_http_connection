@@ -7,7 +7,7 @@ RightScale::HttpConnection
 Rightscale::HttpConnection is a robust HTTP/S library.  It implements a retry
 algorithm for low-level network errors.
 
-== FEATURES/PROBLEMS:
+== FEATURES:
 
 - provides put/get streaming
 - does configurable retries on connect and read timeouts, DNS failures, etc.
@@ -18,7 +18,13 @@ algorithm for low-level network errors.
 
 == REQUIREMENTS:
 
-None.
+- 2/11/08: If you use RightScale::HttpConnection in conjunction with attachment_fu, the
+  HttpConnection gem must be included (using the require statement) AFTER
+  attachment_fu.  
+  This is due to a conflict between the HttpConnection gem and another
+  gem required by attachment_fu.
+
+
 
 == INSTALL:
 
@@ -26,7 +32,7 @@ sudo gem install
 
 == LICENSE:
 
-Copyright (c) 2007 RightScale, Inc. 
+Copyright (c) 2007-2008 RightScale, Inc. 
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
