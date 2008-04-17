@@ -284,10 +284,14 @@ them.
         # if we are inside a delay between retries: no requests this time!
         if error_count > HTTP_CONNECTION_RETRY_COUNT \
         && error_time + HTTP_CONNECTION_RETRY_DELAY > Time.now
-          @logger.warn("#{err_header} re-raising same error: #{banana_message} " +
+          # store the message (otherwise it will be lost after error_reset and
+          # we will raise an exception with an empty text)
+          banana_message_text = banana_message
+          @logger.warn("#{err_header} re-raising same error: #{banana_message_text} " +
                       "-- error count: #{error_count}, error age: #{Time.now.to_i - error_time.to_i}")  
+          error_reset
           exception = get_param(:exception) || RuntimeError
-          raise exception.new(banana_message)
+          raise exception.new(banana_message_text)
         end
       
         # try to connect server(if connection does not exist) and get response data
