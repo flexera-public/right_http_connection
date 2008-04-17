@@ -286,6 +286,7 @@ them.
         && error_time + HTTP_CONNECTION_RETRY_DELAY > Time.now
           @logger.warn("#{err_header} re-raising same error: #{banana_message} " +
                       "-- error count: #{error_count}, error age: #{Time.now.to_i - error_time.to_i}")  
+          error_reset
           exception = get_param(:exception) || RuntimeError
           raise exception.new(banana_message)
         end
