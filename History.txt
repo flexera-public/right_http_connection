@@ -39,8 +39,4 @@ Initial public release
   * "RightAws: incompatible Net::HTTP monkey-patch" exception is raised if our net_fix
     patch was overriden (by attachment_fu for example, to avoid this load attachment_fu 
     before loading the right_http_connection gem).
-
-*  r3524, konstantin, 2008-04-17 11:35:42 +0400
-  Fixed a problem with incorrect error handling (connection retries always failed).
-  
     

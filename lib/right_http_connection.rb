@@ -82,7 +82,7 @@ them.
     # Throw a Timeout::Error if a connection isn't established within this number of seconds
     HTTP_CONNECTION_OPEN_TIMEOUT  = 5   
     # Throw a Timeout::Error if no data have been read on this connnection within this number of seconds
-    HTTP_CONNECTION_READ_TIMEOUT  = 120  
+    HTTP_CONNECTION_READ_TIMEOUT  = 30  
     # Length of the post-error probationary period during which all requests will fail 
     HTTP_CONNECTION_RETRY_DELAY   = 15  
 
@@ -284,14 +284,10 @@ them.
         # if we are inside a delay between retries: no requests this time!
         if error_count > HTTP_CONNECTION_RETRY_COUNT \
         && error_time + HTTP_CONNECTION_RETRY_DELAY > Time.now
-          # store the message (otherwise it will be lost after error_reset and
-          # we will raise an exception with an empty text)
-          banana_message_text = banana_message
-          @logger.warn("#{err_header} re-raising same error: #{banana_message_text} " +
+          @logger.warn("#{err_header} re-raising same error: #{banana_message} " +
                       "-- error count: #{error_count}, error age: #{Time.now.to_i - error_time.to_i}")  
-          error_reset
           exception = get_param(:exception) || RuntimeError
-          raise exception.new(banana_message_text)
+          raise exception.new(banana_message)
         end
       
         # try to connect server(if connection does not exist) and get response data
