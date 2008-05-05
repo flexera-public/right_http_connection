@@ -40,7 +40,9 @@ Initial public release
     patch was overriden (by attachment_fu for example, to avoid this load attachment_fu 
     before loading the right_http_connection gem).
 
+== 1.2.2
+
 *  r3524, konstantin, 2008-04-17 11:35:42 +0400
-  Fixed a problem with incorrect error handling (connection retries always failed).
-  
-    
+  * Fixed a problem with incorrect error handling (connection retries always failed).
+
+== 1.2.3

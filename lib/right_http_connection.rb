@@ -34,7 +34,7 @@ module RightHttpConnection #:nodoc:
   module VERSION #:nodoc:
     MAJOR = 1
     MINOR = 2
-    TINY  = 2
+    TINY  = 3
 
     STRING = [MAJOR, MINOR, TINY].join('.')
   end
@@ -89,15 +89,24 @@ them.
     #--------------------
     # class methods
     #--------------------
-      # Params hash
-      # :user_agent => 'www.HostName.com'    # String to report as HTTP User agent 
-      # :ca_file    => 'path_to_file'        # Path to a CA certification file in PEM format. The file can contain several CA certificates.  If this parameter isn't set, HTTPS certs won't be verified.
-      # :logger     => Logger object         # If omitted, HttpConnection logs to STDOUT
-      # :exception  => Exception to raise    # The type of exception to raise
-                                             # if a request repeatedly fails. RuntimeError is raised if this parameter is omitted.
+    #
     @@params = {}
+    @@params[:http_connection_retry_count]  = HTTP_CONNECTION_RETRY_COUNT
+    @@params[:http_connection_open_timeout] = HTTP_CONNECTION_OPEN_TIMEOUT
+    @@params[:http_connection_read_timeout] = HTTP_CONNECTION_READ_TIMEOUT
+    @@params[:http_connection_retry_delay]  = HTTP_CONNECTION_RETRY_DELAY
    
-    # Query the global (class-level) parameters
+    # Query the global (class-level) parameters:
+    # 
+    #  :user_agent => 'www.HostName.com'    # String to report as HTTP User agent 
+    #  :ca_file    => 'path_to_file'        # Path to a CA certification file in PEM format. The file can contain several CA certificates.  If this parameter isn't set, HTTPS certs won't be verified.
+    #  :logger     => Logger object         # If omitted, HttpConnection logs to STDOUT
+    #  :exception  => Exception to raise    # The type of exception to raise
+    #                                       # if a request repeatedly fails. RuntimeError is raised if this parameter is omitted.
+    #  :http_connection_retry_count         # by default == Rightscale::HttpConnection::HTTP_CONNECTION_RETRY_COUNT
+    #  :http_connection_open_timeout        # by default == Rightscale::HttpConnection::HTTP_CONNECTION_OPEN_TIMEOUT
+    #  :http_connection_read_timeout        # by default == Rightscale::HttpConnection::HTTP_CONNECTION_READ_TIMEOUT
+    #  :http_connection_retry_delay         # by default == Rightscale::HttpConnection::HTTP_CONNECTION_RETRY_DELAY
     def self.params
       @@params
     end
@@ -115,16 +124,22 @@ them.
     attr_accessor :params      # see @@params
     attr_accessor :logger
 
-=begin rdoc
-      Params hash:
-       :user_agent => 'www.HostName.com'     String to report as HTTP User agent 
-       :ca_file    => 'path_to_file'         A path of a CA certification file in PEM format. The file can contain several CA certificates.
-       :logger     => Logger object          If omitted, HttpConnection logs to STDOUT
-       :exception  => Exception to raise     The type of exception to raise if a request repeatedly fails. RuntimeError is raised if this parameter is omitted.
-                                            
-=end 
+     # Params hash:
+     #  :user_agent => 'www.HostName.com'    # String to report as HTTP User agent 
+     #  :ca_file    => 'path_to_file'        # A path of a CA certification file in PEM format. The file can contain several CA certificates.
+     #  :logger     => Logger object         # If omitted, HttpConnection logs to STDOUT
+     #  :exception  => Exception to raise    # The type of exception to raise if a request repeatedly fails. RuntimeError is raised if this parameter is omitted.
+     #  :http_connection_retry_count         # by default == Rightscale::HttpConnection.params[:http_connection_retry_count]
+     #  :http_connection_open_timeout        # by default == Rightscale::HttpConnection.params[:http_connection_open_timeout]
+     #  :http_connection_read_timeout        # by default == Rightscale::HttpConnection.params[:http_connection_read_timeout]
+     #  :http_connection_retry_delay         # by default == Rightscale::HttpConnection.params[:http_connection_retry_delay]
+     #
     def initialize(params={})
-      @params = params     
+      @params = params
+      @params[:http_connection_retry_count]  ||= @@params[:http_connection_retry_count]
+      @params[:http_connection_open_timeout] ||= @@params[:http_connection_open_timeout]
+      @params[:http_connection_read_timeout] ||= @@params[:http_connection_read_timeout]
+      @params[:http_connection_retry_delay]  ||= @@params[:http_connection_retry_delay]
       @http   = nil
       @server = nil
       @logger = get_param(:logger) || 
@@ -218,10 +233,10 @@ them.
       @@eof[@server] && @@eof[@server].last
     end
     
-      # Returns true if we are receiving EOFs during last HTTP_CONNECTION_RETRY_DELAY seconds
+      # Returns true if we are receiving EOFs during last @params[:http_connection_retry_delay] seconds
       # and there were no successful response from server
     def raise_on_eof_exception?
-      @@eof[@server].blank? ? false : ( (Time.now.to_i-HTTP_CONNECTION_RETRY_DELAY) > @@eof[@server].last.to_i )
+      @@eof[@server].blank? ? false : ( (Time.now.to_i-@params[:http_connection_retry_delay]) > @@eof[@server].last.to_i )
     end 
     
       # Reset a list of EOFs for this server.
@@ -242,8 +257,8 @@ them.
       
       @logger.info("Opening new #{@protocol.upcase} connection to #@server:#@port")
       @http = Net::HTTP.new(@server, @port)
-      @http.open_timeout = HTTP_CONNECTION_OPEN_TIMEOUT
-      @http.read_timeout = HTTP_CONNECTION_READ_TIMEOUT
+      @http.open_timeout = @params[:http_connection_open_timeout]
+      @http.read_timeout = @params[:http_connection_read_timeout]
       
       if @protocol == 'https'
         verifyCallbackProc = Proc.new{ |ok, x509_store_ctx|
@@ -271,10 +286,10 @@ them.
     Send HTTP request to server
 
      request_params hash:
-     :server   => 'www.HostName.com'   Hostname or IP address of HTTP server
-     :port     => '80'                 Port of HTTP server 
-     :protocol => 'https'              http and https are supported on any port 
-     :request  => 'requeststring'      Fully-formed HTTP request to make
+     :server   => 'www.HostName.com'   # Hostname or IP address of HTTP server
+     :port     => '80'                 # Port of HTTP server 
+     :protocol => 'https'              # http and https are supported on any port 
+     :request  => 'requeststring'      # Fully-formed HTTP request to make
 
     Raises RuntimeError, Interrupt, and params[:exception] (if specified in new).
     
@@ -282,18 +297,17 @@ them.
     def request(request_params, &block)
       loop do
         # if we are inside a delay between retries: no requests this time!
-        if error_count > HTTP_CONNECTION_RETRY_COUNT \
-        && error_time + HTTP_CONNECTION_RETRY_DELAY > Time.now
+        if error_count > @params[:http_connection_retry_count] && 
+           error_time + @params[:http_connection_retry_delay] > Time.now
           # store the message (otherwise it will be lost after error_reset and
           # we will raise an exception with an empty text)
           banana_message_text = banana_message
           @logger.warn("#{err_header} re-raising same error: #{banana_message_text} " +
                       "-- error count: #{error_count}, error age: #{Time.now.to_i - error_time.to_i}")  
-          error_reset
           exception = get_param(:exception) || RuntimeError
           raise exception.new(banana_message_text)
         end
-      
+        
         # try to connect server(if connection does not exist) and get response data
         begin
           request_params[:protocol] ||= (request_params[:port] == 443 ? 'https' : 'http')
