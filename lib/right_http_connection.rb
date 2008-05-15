@@ -333,8 +333,7 @@ them.
           end
 
           # Always make sure that the file pointer is set to point to the beginning of the file
-          request.body.seek(0,IO::SEEK_SET) if request.body
-          request.body_stream.seek(0,IO::SEEK_SET) if request.body_stream
+          (request.body || request.body_stream).seek(0,IO::SEEK_SET) if request.body || request.body_stream
 
           response = @http.request(request, &block)
           
