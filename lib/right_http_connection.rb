@@ -332,8 +332,10 @@ them.
             request.body_stream = request.body
           end
 
-          # Always make sure that the file pointer is set to point to the beginning of the file
-          (request.body || request.body_stream).seek(0,IO::SEEK_SET) if request.body || request.body_stream
+          # Always make sure that the fp is set to point to the beginning of the
+          # File/IO. Note: socket is a linear stream of bytes -- not seek-able.
+          # The retry must be handled elsewhere -- higher level.
+          request.body_stream.pos = 0 if(request.body_stream && (request.body_stream.instance_of?(File) || request.body_stream.instance_of?(IO)))
 
           response = @http.request(request, &block)
           
