@@ -331,12 +331,6 @@ them.
             request.content_length = body.respond_to?(:lstat) ? body.lstat.size : body.size 
             request.body_stream = request.body
           end
-
-          # Always make sure that the fp is set to point to the beginning of the
-          # File/IO. Note: socket is a linear stream of bytes -- not seek-able.
-          # The retry must be handled elsewhere -- higher level.
-          request.body_stream.pos = 0 if(request.body_stream && (request.body_stream.instance_of?(File) || request.body_stream.instance_of?(IO)))
-
           response = @http.request(request, &block)
           
           error_reset
@@ -380,6 +374,18 @@ them.
           # oops - we got a banana: log it
           error_add(e.message)
           @logger.warn("#{err_header} request failure count: #{error_count}, exception: #{e.inspect}")
+
+          # Always make sure that the fp is set to point to the beginning(?) of
+          # the File/IO. TODO: it assumes that offset is 0, which is bad.
+          if(request.body_stream && request.body_stream.respond_to?(:pos))
+            begin
+              request.body_stream.pos = 0
+            rescue Exception => e
+              @logger.warn("Retry may fail due to unable to reset the file pointer" +
+                           " -- #{err_header} #{e.inspect}")
+              # may want to raise here? since it is not recoverable
+            end
+          end
         end
       end
     end
