@@ -244,6 +244,36 @@ them.
     def eof_reset
       @@eof.delete(@server)
     end
+    
+    # Detects if an object is 'streamable' - can we read from it, and can we know the size?  
+    def setup_streaming(request)
+      if(request.body && request.body.respond_to?(:read))
+        body = request.body
+        request.content_length = body.respond_to?(:lstat) ? body.lstat.size : body.size 
+        request.body_stream = request.body
+        true
+      end
+    end
+    
+    def get_fileptr_offset(request_params)
+      request_params[:request].body.pos
+    rescue Exception => e
+      # Probably caught this because the body doesn't support the pos() method, like if it is a socket.
+      # Just return 0 and get on with life.
+      0
+    end
+    
+    def reset_fileptr_offset(request, offset = 0)
+      if(request.body_stream && request.body_stream.respond_to?(:pos))
+        begin
+          request.body_stream.pos = offset
+        rescue Exception => e
+          @logger.warn("Failed file pointer reset; aborting HTTP retries." +
+                             " -- #{err_header} #{e.inspect}")
+          raise e
+        end
+      end  
+    end
 
     # Start a fresh connection. The object closes any existing connection and
     # opens a new one.
@@ -295,6 +325,8 @@ them.
     
 =end
     def request(request_params, &block)
+      # We save the offset here so that if we need to retry, we can return the file pointer to its initial position
+      mypos = get_fileptr_offset(request_params)
       loop do
         # if we are inside a delay between retries: no requests this time!
         if error_count > @params[:http_connection_retry_count] && 
@@ -326,11 +358,7 @@ them.
 
           # Detect if the body is a streamable object like a file or socket.  If so, stream that
           # bad boy.
-          if(request.body && request.body.respond_to?(:read))
-            body = request.body
-            request.content_length = body.respond_to?(:lstat) ? body.lstat.size : body.size 
-            request.body_stream = request.body
-          end
+          setup_streaming(request)
           response = @http.request(request, &block)
           
           error_reset
@@ -359,6 +387,8 @@ them.
           else
               # ... else just sleep a bit before new retry
             sleep(add_eof)
+            # We will be retrying the request, so reset the file pointer
+            reset_fileptr_offset(request, mypos)
           end 
         rescue Exception => e  # See comment at bottom for the list of errors seen...
           @http = nil
@@ -375,17 +405,9 @@ them.
           error_add(e.message)
           @logger.warn("#{err_header} request failure count: #{error_count}, exception: #{e.inspect}")
 
-          # Always make sure that the fp is set to point to the beginning(?) of
-          # the File/IO. TODO: it assumes that offset is 0, which is bad.
-          if(request.body_stream && request.body_stream.respond_to?(:pos))
-            begin
-              request.body_stream.pos = 0
-            rescue Exception => e
-              @logger.warn("Retry may fail due to unable to reset the file pointer" +
-                           " -- #{err_header} #{e.inspect}")
-              # may want to raise here? since it is not recoverable
-            end
-          end
+          # We will be retrying the request, so reset the file pointer
+          reset_fileptr_offset(request, mypos)
+          
         end
       end
     end
