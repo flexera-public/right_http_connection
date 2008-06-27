@@ -46,3 +46,7 @@ Initial public release
   * Fixed a problem with incorrect error handling (connection retries always failed).
 
 == 1.2.3
+
+- Added support for setting retry & timeout parameters in the constructor
+- Improve handling of data streams during upload: if there is a failure and a retry, reset
+  the seek pointer for the subsequent re-request
