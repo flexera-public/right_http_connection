@@ -28,7 +28,7 @@ algorithm for low-level network errors.
 
 == INSTALL:
 
-sudo gem install
+sudo gem install right_http_connection
 
 == LICENSE:
 
