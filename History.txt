@@ -50,3 +50,9 @@ Initial public release
 - Added support for setting retry & timeout parameters in the constructor
 - Improve handling of data streams during upload: if there is a failure and a retry, reset
   the seek pointer for the subsequent re-request
+
+== 1.2.4 
+
+- fixed a bug: <NoMethodError: You have a nil object when you didn't expect it!
+                The error occurred while evaluating nil.body_stream>
+
