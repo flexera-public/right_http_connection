@@ -53,6 +53,7 @@ Initial public release
 
 == 1.2.4 
 
-- fixed a bug: <NoMethodError: You have a nil object when you didn't expect it!
-                The error occurred while evaluating nil.body_stream>
+*  r4984, konstantin, 2008-08-11 14:49:18 +0400
+  * fixed a bug: <NoMethodError: You have a nil object when you didn't expect it!
+                  The error occurred while evaluating nil.body_stream>
 
