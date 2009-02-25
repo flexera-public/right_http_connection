@@ -12,10 +12,10 @@ include FileUtils
 require File.join(File.dirname(__FILE__), 'lib', 'right_http_connection')
 
 AUTHOR = 'RightScale'  # can also be an array of Authors
-EMAIL = "support@rightscale.com"
+EMAIL = "rubygems@rightscale.com"
 DESCRIPTION = "RightScale's robust HTTP/S connection module"
 GEM_NAME = 'right_http_connection' # what ppl will type to install your gem
-RUBYFORGE_PROJECT = 'rightaws' # The unix name for your project
+RUBYFORGE_PROJECT = 'rightscale' # The unix name for your project
 HOMEPATH = "http://#{RUBYFORGE_PROJECT}.rubyforge.org"
 DOWNLOAD_PATH = "http://rubyforge.org/projects/#{RUBYFORGE_PROJECT}"
 
@@ -29,10 +29,23 @@ RDOC_OPTS = ['--quiet', '--title', 'right_http_connection documentation',
     "--main", "README",
     "--inline-source"]
 
+# Suppress Hoe's self-inclusion as a dependency for our Gem. This also keeps
+# Rake & rubyforge out of the dependency list. Users must manually install
+# these gems to run tests, etc.
+# TRB 2/19/09: also do this for the extra_dev_deps array present in newer hoes.
+# Older versions of RubyGems will try to install developer-dependencies as
+# required runtime dependencies....
 class Hoe
-  def extra_deps 
-    @extra_deps.reject { |x| Array(x).first == 'hoe' } 
-  end 
+  def extra_deps
+    @extra_deps.reject do |x|
+      Array(x).first == 'hoe'
+    end
+  end
+  def extra_dev_deps
+    @extra_dev_deps.reject do |x|
+      Array(x).first == 'hoe'
+    end
+  end
 end
 
 # Generate all the Rake tasks
