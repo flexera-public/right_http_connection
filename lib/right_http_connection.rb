@@ -328,9 +328,18 @@ them.
       # We save the offset here so that if we need to retry, we can return the file pointer to its initial position
       mypos = get_fileptr_offset(request_params)
       loop do
+        request_params[:protocol] ||= (request_params[:port] == 443 ? 'https' : 'http')
+        # (re)open connection to server if none exists or params has changed
+        same_server_as_before = @server   == request_params[:server] &&
+                                @port     == request_params[:port]   &&
+                                @protocol == request_params[:protocol]
+
         # if we are inside a delay between retries: no requests this time!
+        # (skip this step if the endpoint has changed)
         if error_count > @params[:http_connection_retry_count] &&
-           error_time + @params[:http_connection_retry_delay] > Time.now
+           error_time + @params[:http_connection_retry_delay] > Time.now &&
+           same_server_as_before
+
           # store the message (otherwise it will be lost after error_reset and
           # we will raise an exception with an empty text)
           banana_message_text = banana_message
@@ -342,17 +351,11 @@ them.
 
         # try to connect server(if connection does not exist) and get response data
         begin
-          request_params[:protocol] ||= (request_params[:port] == 443 ? 'https' : 'http')
-
           request = request_params[:request]
           request['User-Agent'] = get_param(:user_agent) || ''
-
-          # (re)open connection to server if none exists or params has changed
           unless @http          &&
                  @http.started? &&
-                 @server   == request_params[:server] &&
-                 @port     == request_params[:port]   &&
-                 @protocol == request_params[:protocol]
+                 same_server_as_before
             start(request_params)
           end
 
