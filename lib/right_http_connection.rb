@@ -34,7 +34,7 @@ module RightHttpConnection #:nodoc:
   module VERSION #:nodoc:
     MAJOR = 1
     MINOR = 2
-    TINY  = 4
+    TINY  = 99 #4
 
     STRING = [MAJOR, MINOR, TINY].join('.')
   end
@@ -286,6 +286,8 @@ them.
       @protocol = request_params[:protocol]
 
       @logger.info("Opening new #{@protocol.upcase} connection to #@server:#@port")
+#      raise 1/0
+
       @http = Net::HTTP.new(@server, @port)
       @http.open_timeout = @params[:http_connection_open_timeout]
       @http.read_timeout = @params[:http_connection_read_timeout]
