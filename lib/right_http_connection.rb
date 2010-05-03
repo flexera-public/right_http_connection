@@ -32,11 +32,11 @@ require "net_fix"
 
 module RightHttpConnection #:nodoc:
   module VERSION #:nodoc:
-    MAJOR = 1
-    MINOR = 2
-    TINY  = 99 #4
+    MAJOR = 1  unless defined?(MAJOR) 
+    MINOR = 2  unless defined?(MINOR)
+    TINY  = 99 unless defined?(TINY)
 
-    STRING = [MAJOR, MINOR, TINY].join('.')
+    STRING = [MAJOR, MINOR, TINY].join('.') unless defined?(STRING)
   end
 end
 
@@ -78,13 +78,13 @@ them.
   class HttpConnection
 
     # Number of times to retry the request after encountering the first error
-    HTTP_CONNECTION_RETRY_COUNT   = 3
+    HTTP_CONNECTION_RETRY_COUNT   = 3   unless defined?(HTTP_CONNECTION_RETRY_COUNT)
     # Throw a Timeout::Error if a connection isn't established within this number of seconds
-    HTTP_CONNECTION_OPEN_TIMEOUT  = 5
+    HTTP_CONNECTION_OPEN_TIMEOUT  = 5   unless defined?(HTTP_CONNECTION_OPEN_TIMEOUT)
     # Throw a Timeout::Error if no data have been read on this connnection within this number of seconds
-    HTTP_CONNECTION_READ_TIMEOUT  = 120
+    HTTP_CONNECTION_READ_TIMEOUT  = 120 unless defined?(HTTP_CONNECTION_READ_TIMEOUT)
     # Length of the post-error probationary period during which all requests will fail
-    HTTP_CONNECTION_RETRY_DELAY   = 15
+    HTTP_CONNECTION_RETRY_DELAY   = 15  unless defined?(HTTP_CONNECTION_RETRY_DELAY)
 
     #--------------------
     # class methods
@@ -306,6 +306,8 @@ them.
           @http.verify_mode     = OpenSSL::SSL::VERIFY_PEER
           @http.verify_callback = verifyCallbackProc
           @http.ca_file         = ca_file
+        else
+          @http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
       end
       # open connection
