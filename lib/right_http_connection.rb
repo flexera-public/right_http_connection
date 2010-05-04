@@ -107,6 +107,7 @@ them.
     #  :http_connection_open_timeout        # by default == Rightscale::HttpConnection::HTTP_CONNECTION_OPEN_TIMEOUT
     #  :http_connection_read_timeout        # by default == Rightscale::HttpConnection::HTTP_CONNECTION_READ_TIMEOUT
     #  :http_connection_retry_delay         # by default == Rightscale::HttpConnection::HTTP_CONNECTION_RETRY_DELAY
+    #  :raise_on_timeout                    # do not perform a retry if timeout is received (false by default)
     def self.params
       @@params
     end
@@ -133,7 +134,7 @@ them.
      #  :http_connection_open_timeout        # by default == Rightscale::HttpConnection.params[:http_connection_open_timeout]
      #  :http_connection_read_timeout        # by default == Rightscale::HttpConnection.params[:http_connection_read_timeout]
      #  :http_connection_retry_delay         # by default == Rightscale::HttpConnection.params[:http_connection_retry_delay]
-     #
+     #  :raise_on_timeout                    # do not perform a retry if timeout is received (false by default)
     def initialize(params={})
       @params = params
       @params[:http_connection_retry_count]  ||= @@params[:http_connection_retry_count]
@@ -147,8 +148,8 @@ them.
                 Logger.new(STDOUT)
     end
 
-    def get_param(name)
-      @params[name] || @@params[name]
+    def get_param(name, custom_options={})
+      custom_options [name] || @params[name] || @@params[name]
     end
 
     # Query for the maximum size (in bytes) of a single read from the underlying
@@ -286,11 +287,10 @@ them.
       @protocol = request_params[:protocol]
 
       @logger.info("Opening new #{@protocol.upcase} connection to #@server:#@port")
-#      raise 1/0
 
       @http = Net::HTTP.new(@server, @port)
-      @http.open_timeout = @params[:http_connection_open_timeout]
-      @http.read_timeout = @params[:http_connection_read_timeout]
+      @http.open_timeout = get_param(:http_connection_open_timeout, request_params)
+      @http.read_timeout = get_param(:http_connection_read_timeout, request_params)
 
       if @protocol == 'https'
         verifyCallbackProc = Proc.new{ |ok, x509_store_ctx|
@@ -325,23 +325,34 @@ them.
      :protocol => 'https'              # http and https are supported on any port
      :request  => 'requeststring'      # Fully-formed HTTP request to make
 
+     :raise_on_timeout                 # do not perform a retry if timeout is received (false by default)
+     :http_connection_retry_count
+     :http_connection_open_timeout
+     :http_connection_read_timeout
+     :http_connection_retry_delay
+     :user_agent
+     :exception
+
     Raises RuntimeError, Interrupt, and params[:exception] (if specified in new).
 
 =end
     def request(request_params, &block)
+      current_params = @params.merge(request_params)
+      exception = get_param(:exception, current_params) || RuntimeError
+
       # We save the offset here so that if we need to retry, we can return the file pointer to its initial position
-      mypos = get_fileptr_offset(request_params)
+      mypos = get_fileptr_offset(current_params)
       loop do
-        request_params[:protocol] ||= (request_params[:port] == 443 ? 'https' : 'http')
+        current_params[:protocol] ||= (current_params[:port] == 443 ? 'https' : 'http')
         # (re)open connection to server if none exists or params has changed
-        same_server_as_before = @server   == request_params[:server] &&
-                                @port     == request_params[:port]   &&
-                                @protocol == request_params[:protocol]
+        same_server_as_before = @server   == current_params[:server] &&
+                                @port     == current_params[:port]   &&
+                                @protocol == current_params[:protocol]
 
         # if we are inside a delay between retries: no requests this time!
         # (skip this step if the endpoint has changed)
-        if error_count > @params[:http_connection_retry_count] &&
-           error_time + @params[:http_connection_retry_delay] > Time.now &&
+        if error_count > current_params[:http_connection_retry_count]            &&
+           error_time  + current_params[:http_connection_retry_delay] > Time.now &&
            same_server_as_before
 
           # store the message (otherwise it will be lost after error_reset and
@@ -349,23 +360,24 @@ them.
           banana_message_text = banana_message
           @logger.warn("#{err_header} re-raising same error: #{banana_message_text} " +
                       "-- error count: #{error_count}, error age: #{Time.now.to_i - error_time.to_i}")
-          exception = get_param(:exception) || RuntimeError
           raise exception.new(banana_message_text)
         end
 
         # try to connect server(if connection does not exist) and get response data
         begin
-          request = request_params[:request]
-          request['User-Agent'] = get_param(:user_agent) || ''
+          request = current_params[:request]
+          request['User-Agent'] = get_param(:user_agent, current_params) || ''
           unless @http          &&
                  @http.started? &&
                  same_server_as_before
-            start(request_params)
+            start(current_params)
           end
 
           # Detect if the body is a streamable object like a file or socket.  If so, stream that
           # bad boy.
           setup_streaming(request)
+          # update READ_TIMEOUT value (it can be passed with request_params hash)
+          @http.read_timeout = get_param(:http_connection_read_timeout, current_params)
           response = @http.request(request, &block)
 
           error_reset
@@ -388,7 +400,6 @@ them.
 
             # if we have waited long enough - raise an exception...
           if raise_on_eof_exception?
-            exception = get_param(:exception) || RuntimeError
             @logger.warn("#{err_header} raising #{exception} due to permanent EOF being received from #{@server}, error age: #{Time.now.to_i - eof_time.to_i}")
             raise exception.new("Permanent EOF is being received from #{@server}.")
           else
@@ -399,13 +410,20 @@ them.
           end
         rescue Exception => e  # See comment at bottom for the list of errors seen...
           @http = nil
+          timeout_exception = e.is_a?(Errno::ETIMEDOUT) || e.is_a?(Timeout::Error)     
+          # Omit retries if it was explicitly requested
+          if current_params[:raise_on_timeout] && timeout_exception
+            # #6481:
+            # ... When creating a resource in EC2 (instance, volume, snapshot, etc) it is undetermined what happened if the call times out.
+            # The resource may or may not have been created in EC2. Retrying the call may cause multiple resources to be created...
+            raise e
+          end
           # if ctrl+c is pressed - we have to reraise exception to terminate proggy
-          if e.is_a?(Interrupt) && !( e.is_a?(Errno::ETIMEDOUT) || e.is_a?(Timeout::Error))
+          if e.is_a?(Interrupt) && !timeout_exception
             @logger.debug( "#{err_header} request to server #{@server} interrupted by ctrl-c")
             raise
           elsif e.is_a?(ArgumentError) && e.message.include?('wrong number of arguments (5 for 4)')
             # seems our net_fix patch was overriden...
-            exception = get_param(:exception) || RuntimeError
             raise exception.new('incompatible Net::HTTP monkey-patch')
           end
           # oops - we got a banana: log it
