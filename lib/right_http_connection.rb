@@ -146,6 +146,11 @@ them.
       @logger = get_param(:logger) ||
                 (RAILS_DEFAULT_LOGGER if defined?(RAILS_DEFAULT_LOGGER)) ||
                 Logger.new(STDOUT)
+      #--------------
+      # Retry state - Keep track of errors on a per-server basis
+      #--------------
+      @state = {}  # retry state indexed by server: consecutive error count, error time, and error
+      @eof   = {}
     end
 
     def get_param(name, custom_options={})
@@ -181,35 +186,30 @@ them.
     end
 
   private
-    #--------------
-    # Retry state - Keep track of errors on a per-server basis
-    #--------------
-    @@state = {}  # retry state indexed by server: consecutive error count, error time, and error
-    @@eof   = {}
 
     # number of consecutive errors seen for server, 0 all is ok
     def error_count
-      @@state[@server] ? @@state[@server][:count] : 0
+      @state[@server] ? @state[@server][:count] : 0
     end
 
     # time of last error for server, nil if all is ok
     def error_time
-      @@state[@server] && @@state[@server][:time]
+      @state[@server] && @state[@server][:time]
     end
 
     # message for last error for server, "" if all is ok
     def error_message
-      @@state[@server] ? @@state[@server][:message] : ""
+      @state[@server] ? @state[@server][:message] : ""
     end
 
     # add an error for a server
     def error_add(message)
-      @@state[@server] = { :count => error_count+1, :time => Time.now, :message => message }
+      @state[@server] = { :count => error_count+1, :time => Time.now, :message => message }
     end
 
     # reset the error state for a server (i.e. a request succeeded)
     def error_reset
-      @@state.delete(@server)
+      @state.delete(@server)
     end
 
     # Error message stuff...
@@ -225,25 +225,25 @@ them.
       # Returns the number of seconds to wait before new conection retry:
       #  0.5, 1, 2, 4, 8
     def add_eof
-      (@@eof[@server] ||= []).unshift Time.now
-      0.25 * 2 ** @@eof[@server].size
+      (@eof[@server] ||= []).unshift Time.now
+      0.25 * 2 ** @eof[@server].size
     end
 
       # Returns first EOF timestamp or nul if have no EOFs being tracked.
     def eof_time
-      @@eof[@server] && @@eof[@server].last
+      @eof[@server] && @eof[@server].last
     end
 
       # Returns true if we are receiving EOFs during last @params[:http_connection_retry_delay] seconds
       # and there were no successful response from server
     def raise_on_eof_exception?
-      @@eof[@server].blank? ? false : ( (Time.now.to_i-@params[:http_connection_retry_delay]) > @@eof[@server].last.to_i )
+      @eof[@server].blank? ? false : ( (Time.now.to_i-@params[:http_connection_retry_delay]) > @eof[@server].last.to_i )
     end
 
       # Reset a list of EOFs for this server.
       # This is being called when we have got an successful response from server.
     def eof_reset
-      @@eof.delete(@server)
+      @eof.delete(@server)
     end
 
     # Detects if an object is 'streamable' - can we read from it, and can we know the size?
