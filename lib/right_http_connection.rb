@@ -34,7 +34,7 @@ module RightHttpConnection #:nodoc:
   module VERSION #:nodoc:
     MAJOR = 1  unless defined?(MAJOR) 
     MINOR = 2  unless defined?(MINOR)
-    TINY  = 99 unless defined?(TINY)
+    TINY  = 5  unless defined?(TINY)
 
     STRING = [MAJOR, MINOR, TINY].join('.') unless defined?(STRING)
   end
@@ -237,7 +237,7 @@ them.
       # Returns true if we are receiving EOFs during last @params[:http_connection_retry_delay] seconds
       # and there were no successful response from server
     def raise_on_eof_exception?
-      @eof[@server].blank? ? false : ( (Time.now.to_i-@params[:http_connection_retry_delay]) > @eof[@server].last.to_i )
+      @eof[@server].nil? ? false : ( (Time.now.to_i-@params[:http_connection_retry_delay]) > @eof[@server].last.to_i )
     end
 
       # Reset a list of EOFs for this server.
@@ -439,7 +439,7 @@ them.
 
     def finish(reason = '')
       if @http && @http.started?
-        reason = ", reason: '#{reason}'" unless reason.blank?
+        reason = ", reason: '#{reason}'" unless reason.empty?
         @logger.info("Closing #{@http.use_ssl? ? 'HTTPS' : 'HTTP'} connection to #{@http.address}:#{@http.port}#{reason}")
         @http.finish
       end

@@ -57,3 +57,6 @@ Initial public release
   * fixed a bug: <NoMethodError: You have a nil object when you didn't expect it!
                   The error occurred while evaluating nil.body_stream>
 
+== 1.2.5 (not released yet)
+
+- ActiveSupport dependency removal 
