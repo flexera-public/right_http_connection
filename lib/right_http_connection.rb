@@ -27,6 +27,7 @@ require "time"
 require "logger"
 
 $:.unshift(File.dirname(__FILE__))
+require 'support'
 require "net_fix"
 
 
