@@ -27,20 +27,9 @@ require "time"
 require "logger"
 
 $:.unshift(File.dirname(__FILE__))
+require 'version'
 require 'support'
 require "net_fix"
-
-
-module RightHttpConnection #:nodoc:
-  module VERSION #:nodoc:
-    MAJOR = 1  unless defined?(MAJOR) 
-    MINOR = 2  unless defined?(MINOR)
-    TINY  = 5  unless defined?(TINY)
-
-    STRING = [MAJOR, MINOR, TINY].join('.') unless defined?(STRING)
-  end
-end
-
 
 module Rightscale
 
@@ -411,7 +400,7 @@ them.
           end
         rescue Exception => e  # See comment at bottom for the list of errors seen...
           @http = nil
-          timeout_exception = e.is_a?(Errno::ETIMEDOUT) || e.is_a?(Timeout::Error)     
+          timeout_exception = e.is_a?(Errno::ETIMEDOUT) || e.is_a?(Timeout::Error)
           # Omit retries if it was explicitly requested
           if current_params[:raise_on_timeout] && timeout_exception
             # #6481:

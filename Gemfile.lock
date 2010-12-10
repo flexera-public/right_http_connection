@@ -1,0 +1,15 @@
+PATH
+  remote: .
+  specs:
+    right_http_connection (1.2.5)
+
+GEM
+  specs:
+    rake (0.8.7)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  rake
+  right_http_connection!
