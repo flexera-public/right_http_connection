@@ -93,6 +93,10 @@ them.
     #  :logger     => Logger object         # If omitted, HttpConnection logs to STDOUT
     #  :exception  => Exception to raise    # The type of exception to raise
     #                                       # if a request repeatedly fails. RuntimeError is raised if this parameter is omitted.
+    #  :proxy_host => 'hostname'            # hostname of HTTP proxy host to use, default none.
+    #  :proxy_port => port                  # port of HTTP proxy host to use, default none.
+    #  :proxy_username => 'username'        # username to use for proxy authentication, default none.
+    #  :proxy_password => 'password'        # password to use for proxy authentication, default none.
     #  :http_connection_retry_count         # by default == Rightscale::HttpConnection::HTTP_CONNECTION_RETRY_COUNT
     #  :http_connection_open_timeout        # by default == Rightscale::HttpConnection::HTTP_CONNECTION_OPEN_TIMEOUT
     #  :http_connection_read_timeout        # by default == Rightscale::HttpConnection::HTTP_CONNECTION_READ_TIMEOUT
@@ -120,6 +124,10 @@ them.
      #  :ca_file    => 'path_to_file'        # A path of a CA certification file in PEM format. The file can contain several CA certificates.
      #  :logger     => Logger object         # If omitted, HttpConnection logs to STDOUT
      #  :exception  => Exception to raise    # The type of exception to raise if a request repeatedly fails. RuntimeError is raised if this parameter is omitted.
+     #  :proxy_host => 'hostname'            # hostname of HTTP proxy host to use, default none.
+     #  :proxy_port => port                  # port of HTTP proxy host to use, default none.
+     #  :proxy_username => 'username'        # username to use for proxy authentication, default none.
+     #  :proxy_password => 'password'        # password to use for proxy authentication, default none.
      #  :http_connection_retry_count         # by default == Rightscale::HttpConnection.params[:http_connection_retry_count]
      #  :http_connection_open_timeout        # by default == Rightscale::HttpConnection.params[:http_connection_open_timeout]
      #  :http_connection_read_timeout        # by default == Rightscale::HttpConnection.params[:http_connection_read_timeout]
@@ -131,6 +139,10 @@ them.
       @params[:http_connection_open_timeout] ||= @@params[:http_connection_open_timeout]
       @params[:http_connection_read_timeout] ||= @@params[:http_connection_read_timeout]
       @params[:http_connection_retry_delay]  ||= @@params[:http_connection_retry_delay]
+      @params[:proxy_host] ||= @@params[:proxy_host]
+      @params[:proxy_port] ||= @@params[:proxy_port]
+      @params[:proxy_username] ||= @@params[:proxy_username]
+      @params[:proxy_password] ||= @@params[:proxy_password]
       @http   = nil
       @server = nil
       @logger = get_param(:logger) ||
@@ -272,13 +284,20 @@ them.
       # close the previous if exists
       finish
       # create new connection
-      @server   = request_params[:server]
-      @port     = request_params[:port]
-      @protocol = request_params[:protocol]
+      @server         = request_params[:server]
+      @port           = request_params[:port]
+      @protocol       = request_params[:protocol]
+      @proxy_host     = request_params[:proxy_host]
+      @proxy_port     = request_params[:proxy_port]
+      @proxy_username = request_params[:proxy_username]
+      @proxy_password = request_params[:proxy_password]
 
       @logger.info("Opening new #{@protocol.upcase} connection to #@server:#@port")
+      @logger.info("Connecting to proxy #{@proxy_host}:#{@proxy_port} with username" +
+                   " #{@proxy_username}") unless @proxy_host.nil?
 
-      @http = Net::HTTP.new(@server, @port)
+      @http = Net::HTTP.new(@server, @port, @proxy_host, @proxy_port, @proxy_username,
+                            @proxy_password)
       @http.open_timeout = get_param(:http_connection_open_timeout, request_params)
       @http.read_timeout = get_param(:http_connection_read_timeout, request_params)
 
@@ -314,6 +333,10 @@ them.
      :port     => '80'                 # Port of HTTP server
      :protocol => 'https'              # http and https are supported on any port
      :request  => 'requeststring'      # Fully-formed HTTP request to make
+     :proxy_host => 'hostname'         # hostname of HTTP proxy host to use, default none.
+     :proxy_port => port               # port of HTTP proxy host to use, default none.
+     :proxy_username => 'username'     # username to use for proxy authentication, default none.
+     :proxy_password => 'password'     # password to use for proxy authentication, default none.
 
      :raise_on_timeout                 # do not perform a retry if timeout is received (false by default)
      :http_connection_retry_count
