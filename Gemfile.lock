@@ -4,12 +4,37 @@ PATH
     right_http_connection (1.2.5)
 
 GEM
+  remote: http://rubygems.org/
   specs:
+    builder (3.0.0)
+    cucumber (0.10.0)
+      builder (>= 2.1.2)
+      diff-lcs (~> 1.1.2)
+      gherkin (~> 2.3.2)
+      json (~> 1.4.6)
+      term-ansicolor (~> 1.0.5)
+    diff-lcs (1.1.2)
+    flexmock (0.8.11)
+    gherkin (2.3.3)
+      json (~> 1.4.6)
+    json (1.4.6)
     rake (0.8.7)
+    rspec (2.4.0)
+      rspec-core (~> 2.4.0)
+      rspec-expectations (~> 2.4.0)
+      rspec-mocks (~> 2.4.0)
+    rspec-core (2.4.0)
+    rspec-expectations (2.4.0)
+      diff-lcs (~> 1.1.2)
+    rspec-mocks (2.4.0)
+    term-ansicolor (1.0.5)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
+  cucumber (~> 0.8)
+  flexmock (~> 0.8.11)
   rake
   right_http_connection!
+  rspec (~> 2.3)

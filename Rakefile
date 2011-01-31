@@ -8,6 +8,8 @@ require 'rake/packagetask'
 require 'rake/gempackagetask'
 require 'rake/rdoctask'
 require 'rake/contrib/rubyforgepublisher'
+require 'rspec/core/rake_task'
+require 'cucumber/rake/task'
 require 'fileutils'
 include FileUtils
 require File.join(File.dirname(__FILE__), 'lib', 'right_http_connection')
@@ -58,4 +60,30 @@ task :check_version do
     puts "Please update your version.rb to match the release version, currently #{VERS}"
     exit
   end
+end
+
+task :default => 'spec'
+
+# == Unit Tests == #
+
+desc "Run unit tests"
+RSpec::Core::RakeTask.new
+
+namespace :spec do
+  desc "Run unit tests with RCov"
+  RSpec::Core::RakeTask.new(:rcov) do |t|
+    t.rcov = true
+    t.rcov_opts = %q[--exclude "spec"]
+  end
+
+  desc "Print Specdoc for unit tests"
+  RSpec::Core::RakeTask.new(:doc) do |t|
+    t.rspec_opts = ["--format", "documentation"]
+  end
+end
+
+# == Functional tests == #
+desc "Run functional tests"
+Cucumber::Rake::Task.new do |t|
+  t.cucumber_opts = %w{--color --format pretty}
 end
