@@ -90,6 +90,7 @@ them.
     #
     #  :user_agent => 'www.HostName.com'    # String to report as HTTP User agent
     #  :ca_file    => 'path_to_file'        # Path to a CA certification file in PEM format. The file can contain several CA certificates.  If this parameter isn't set, HTTPS certs won't be verified.
+    #  :fail_if_ca_mismatch => Boolean      # If ca_file is set and the server certificate doesn't verify, a log line is generated regardless, but normally right_http_connection continues on past the failure.  If this is set, fail to connect in that case.  Defaults to false.
     #  :logger     => Logger object         # If omitted, HttpConnection logs to STDOUT
     #  :exception  => Exception to raise    # The type of exception to raise
     #                                       # if a request repeatedly fails. RuntimeError is raised if this parameter is omitted.
@@ -122,6 +123,7 @@ them.
      # Params hash:
      #  :user_agent => 'www.HostName.com'    # String to report as HTTP User agent
      #  :ca_file    => 'path_to_file'        # A path of a CA certification file in PEM format. The file can contain several CA certificates.
+     #  :fail_if_ca_mismatch => Boolean      # If ca_file is set and the server certificate doesn't verify, a log line is generated regardless, but normally right_http_connection continues on past the failure.  If this is set, fail to connect in that case.  Defaults to false.
      #  :logger     => Logger object         # If omitted, HttpConnection logs to STDOUT
      #  :exception  => Exception to raise    # The type of exception to raise if a request repeatedly fails. RuntimeError is raised if this parameter is omitted.
      #  :proxy_host => 'hostname'            # hostname of HTTP proxy host to use, default none.
@@ -307,7 +309,11 @@ them.
           msg = x509_store_ctx.error_string
             #debugger
           @logger.warn("##### #{@server} certificate verify failed: #{msg}") unless code == 0
-          true
+          if request_params[:fail_if_ca_mismatch] && code != 0
+            false
+          else
+            true
+          end
         }
         @http.use_ssl = true
         ca_file = get_param(:ca_file)

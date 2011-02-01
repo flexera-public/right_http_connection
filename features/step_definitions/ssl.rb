@@ -35,6 +35,10 @@ Given /^a CA certification file not containing that server$/ do
   @ca_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec", "bad.ca"))
 end
 
+Given /^the strict failure option turned on$/ do
+  @fail_if_ca_mismatch = true
+end
+
 Then /^there should be a warning about certificate verification failing$/ do
   @output.string.should =~ /.*WARN -- : ##### 127\.0\.0\.1 certificate verify failed:.*/
 end

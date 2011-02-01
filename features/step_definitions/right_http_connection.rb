@@ -42,6 +42,7 @@ When /^I request that URL using RightHTTPConnection$/ do
   hash[:proxy_port] = @proxy_port if @proxy_port
   hash[:proxy_username] = @proxy_username if @proxy_username
   hash[:proxy_password] = @proxy_password if @proxy_password
+  hash[:fail_if_ca_mismatch] = true if @fail_if_ca_mismatch
   @connection = Rightscale::HttpConnection.new(hash)
   @request = Net::HTTP::Get.new(@uri.request_uri)
   @request["Host"] = "#{@uri.host}:#{@uri.port}"

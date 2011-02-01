@@ -30,5 +30,5 @@ Then /^the proxy should have been used$/ do
 end
 
 Then /^the proxy should have been tunneled through$/ do
-  File.open("#{@tmpdir}/proxy.out").read.should =~ /\Alocalhost - [^ ]+ \[[^\]]*\] \"CONNECT #{Regexp.escape(@uri.host)}:#{Regexp.escape(@uri.port.to_s)} HTTP\/1\.1\" \d+ \d+ \"-\" \".*\"\n\Z/
+  File.open("#{@tmpdir}/proxy.out").read.should =~ /^localhost - [^ ]+ \[[^\]]*\] \"CONNECT #{Regexp.escape(@uri.host)}:#{Regexp.escape(@uri.port.to_s)} HTTP\/1\.1\" \d+ \d+ \"-\" \".*\"\n$/
 end
