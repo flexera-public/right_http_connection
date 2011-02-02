@@ -34,7 +34,7 @@ Gem::Specification.new do |spec|
   spec.summary = 'RightScale\'s robust HTTP/S connection module'
   spec.has_rdoc = true
   spec.rdoc_options = ['--quiet', '--main', 'README.txt', '--title',
-                       'right_http_connection documentation', '-opname',
+                       'right_http_connection documentation', '--opname',
                        'index.html', '--line-numbers', '--inline-source']
   spec.extra_rdoc_files = ['README.txt']
   spec.required_ruby_version = '>= 1.8.7'
