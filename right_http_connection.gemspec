@@ -44,6 +44,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency('rspec', "~> 2.3")
   spec.add_development_dependency('cucumber', "~> 0.8")
   spec.add_development_dependency('flexmock', "~> 0.8.11")
+  spec.add_development_dependency('trollop', "~> 1.16")
 
   spec.description = <<-EOF
 Rightscale::HttpConnection is a robust HTTP/S library.  It implements a retry

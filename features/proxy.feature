@@ -23,6 +23,13 @@ Feature: RightHTTPConnection can connect to a web server through a proxy
     When I request that URL using RightHTTPConnection
     Then I should get told to authenticate correctly
 
+  Scenario: proxy doesn't like CONNECT requests
+    Given a URL
+    And a proxy that refuses CONNECT requests
+    When I request that URL using RightHTTPConnection
+    Then I should get the contents of the URL
+    And the proxy should have been used
+
   Scenario: intermittent failure
     Given a URL that fails intermittently
     And a proxy

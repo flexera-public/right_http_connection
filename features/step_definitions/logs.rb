@@ -30,5 +30,9 @@ Then /^the proxy should have been used$/ do
 end
 
 Then /^the proxy should have been tunneled through$/ do
-  File.open("#{@tmpdir}/proxy.out").read.should =~ /^localhost - [^ ]+ \[[^\]]*\] \"CONNECT #{Regexp.escape(@uri.host)}:#{Regexp.escape(@uri.port.to_s)} HTTP\/1\.1\" \d+ \d+ \"-\" \".*\"\n$/
+  Given "the proxy should have been tunneled through with a 200 status code"
+end
+
+Then /^the proxy should have been tunneled through with a (\d+) status code$/ do |code|
+  File.open("#{@tmpdir}/proxy.out").read.should =~ /^localhost - [^ ]+ \[[^\]]*\] \"CONNECT #{Regexp.escape(@uri.host)}:#{Regexp.escape(@uri.port.to_s)} HTTP\/1\.1\" #{Regexp.escape(code)} \d+ \"-\" \".*\"\n$/
 end

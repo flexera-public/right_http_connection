@@ -10,6 +10,13 @@ Feature: RightHTTPConnection can connect to a secure web server through a proxy
     Then I should get the contents of the URL
     And the proxy should have been tunneled through
 
+  Scenario: proxy doesn't like CONNECT requests
+    Given an HTTPS URL
+    And a proxy that refuses CONNECT requests
+    When I request that URL using RightHTTPConnection
+    Then I should get an exception
+    And the proxy should have been tunneled through with a 403 status code
+
   Scenario: normal operation with a CA certification file
     Given an HTTPS URL
     And a proxy

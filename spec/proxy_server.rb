@@ -21,8 +21,9 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
-# A HttpWatch proxy clone (without the license!)
 require 'rubygems'
+require 'bundler/setup'
+require 'trollop'
 require 'webrick/httpproxy'
 require 'webrick/httpauth'
 require 'cgi'
@@ -35,17 +36,34 @@ module WEBrick::HTMLUtils
   module_function :escape
 end
 
-username, password = ARGV[0], ARGV[1]
+opts = Trollop::options do
+  version "proxy_server 0.1 (c) 2011 RightScale, Inc."
+  banner <<-EOS
+Run a very simple proxy server for debugging.
+
+Usage:
+    proxy_server [options]
+where [options] are:
+EOS
+  opt :username, "Username to use for authentication", :type => :string
+  opt :password, "Password to use for authentication", :type => :string
+  opt :port, "Port to use", :default => 9090
+  opt :disable_connect, "Whether to disable using CONNECT through the proxy"
+end
 
 logger = WEBrick::Log.new($stderr, WEBrick::Log::WARN)
 config = {}
-config[:Port] = 9090
+config[:Port] = opts[:port]
 config[:Logger] = logger
 config[:AccessLog] = [[$stdout, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
-unless username.nil? || password.nil?
-  config[:ProxyAuthProc] = Proc.new do |req, res|
+config[:ProxyAuthProc] = Proc.new do |req, res|
+  if opts[:disable_connect] && req.request_method == "CONNECT"
+    raise WEBrick::HTTPStatus::Forbidden
+  end
+
+  unless opts[:username].nil? || opts[:password].nil?
     WEBrick::HTTPAuth.proxy_basic_auth(req, res, "Test realm") {|user, pass|
-      user == username && pass == password
+      user == opts[:username] && pass == opts[:password]
     }
   end
 end

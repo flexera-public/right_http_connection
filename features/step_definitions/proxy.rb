@@ -21,7 +21,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
-Given /^a proxy$/ do
+Given /^a proxy on port (\d+) with arguments "(.*)"$/ do |port, args|
+  arguments = Shellwords.shellsplit(args)
   @subprocess_pids << fork do
     ENV['RACK_ENV'] = "test"
     Dir.chdir(@tmpdir)
@@ -29,28 +30,25 @@ Given /^a proxy$/ do
     output = File.open("#{@tmpdir}/proxy.out", "w")
     STDOUT.reopen(output)
     exec "ruby", File.expand_path(File.join(File.dirname(__FILE__), "..", "..",
-                                            "spec/proxy_server.rb"))
+                                            "spec/proxy_server.rb")), "--port", port, *arguments
   end
-  Given "a server listening on port 9090"
+  Given "a server listening on port #{port}"
   @proxy_host = "localhost"
-  @proxy_port = "9090"
+  @proxy_port = port
+end
+
+Given /^a proxy$/ do
+  Given "a proxy on port 9090 with arguments \"\""
 end
 
 Given /^a proxy with a username and password$/ do
-  @subprocess_pids << fork do
-    ENV['RACK_ENV'] = "test"
-    Dir.chdir(@tmpdir)
-    STDIN.close
-    output = File.open("#{@tmpdir}/proxy.out", "w")
-    STDOUT.reopen(output)
-    exec "ruby", File.expand_path(File.join(File.dirname(__FILE__), "..", "..",
-                                            "spec/proxy_server.rb")), "username", "password"
-  end
-  Given "a server listening on port 9090"
-  @proxy_host = "localhost"
-  @proxy_port = "9090"
+  Given "a proxy on port 9090 with arguments \"--username username --password password\""
   @proxy_username = "username"
   @proxy_password = "password"
+end
+
+Given /^a proxy that refuses CONNECT requests$/ do
+  Given "a proxy on port 9090 with arguments \"--disable-connect\""
 end
 
 Given /^a proxy with the wrong username and password$/ do
