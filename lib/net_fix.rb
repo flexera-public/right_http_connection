@@ -122,39 +122,40 @@ module Net
 
 
   #-- Net::HTTP --
-  
-  class HTTP
-    def request(req, body = nil, &block)  # :yield: +response+
-      unless started?
-        start {
-          req['connection'] ||= 'close'
-          return request(req, body, &block)
-        }
-      end
-      if proxy_user()
-        unless use_ssl?
-          req.proxy_basic_auth proxy_user(), proxy_pass()
+  if RUBY_VERSION =~ /^1.8/
+    class HTTP
+      def request(req, body = nil, &block)  # :yield: +response+
+        unless started?
+          start {
+            req['connection'] ||= 'close'
+            return request(req, body, &block)
+          }
         end
-      end
-      # set body
-      req.set_body_internal body
-      begin_transport req
-        # if we expect 100-continue then send a header first
-        send_only = ((req.is_a?(Post)||req.is_a?(Put)) && (req['expect']=='100-continue')) ? :header : nil
-        req.exec @socket, @curr_http_version, edit_path(req.path), send_only
-        begin
-          res = HTTPResponse.read_new(@socket)
-          # if we expected 100-continue then send a body
-          if res.is_a?(HTTPContinue) && send_only && req['content-length'].to_i > 0
-            req.exec @socket, @curr_http_version, edit_path(req.path), :body
+        if proxy_user()
+          unless use_ssl?
+            req.proxy_basic_auth proxy_user(), proxy_pass()
           end
-        end while res.kind_of?(HTTPContinue)
-        res.reading_body(@socket, req.response_body_permitted?) {
-          yield res if block_given?
-        }
-      end_transport req, res
-      res
+        end
+        # set body
+        req.set_body_internal body
+        begin_transport req
+          # if we expect 100-continue then send a header first
+          send_only = ((req.is_a?(Post)||req.is_a?(Put)) && (req['expect']=='100-continue')) ? :header : nil
+          req.exec @socket, @curr_http_version, edit_path(req.path), send_only
+          begin
+            res = HTTPResponse.read_new(@socket)
+            # if we expected 100-continue then send a body
+            if res.is_a?(HTTPContinue) && send_only && req['content-length'].to_i > 0
+              req.exec @socket, @curr_http_version, edit_path(req.path), :body
+            end
+          end while res.kind_of?(HTTPContinue)
+          res.reading_body(@socket, req.response_body_permitted?) {
+            yield res if block_given?
+          }
+        end_transport req, res
+        res
+      end
     end
   end
-
+  
 end
