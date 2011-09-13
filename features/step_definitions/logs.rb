@@ -22,11 +22,11 @@
 #++
 
 Then /^the logs should show a \"([^\"]*)\" user agent$/ do |ua|
-  File.open("#{@tmpdir}/weblog.out").read.should =~ /\Alocalhost - - \[[^\]]*\] \"GET [^ ]+ HTTP\/1\.1\" \d+ \d+ \"-\" \"#{Regexp.escape(ua)}\"\n\Z/
+  File.open("#{@tmpdir}/weblog.out").read.should =~ /\A\w+ - - \[[^\]]*\] \"GET [^ ]+ HTTP\/1\.1\" \d+ \d+ \"-\" \"#{Regexp.escape(ua)}\"\n\Z/
 end
 
 Then /^the proxy should have been used$/ do
-  File.open("#{@tmpdir}/proxy.out").read.should =~ /\Alocalhost - [^ ]+ \[[^\]]*\] \"GET #{Regexp.escape(@uri.to_s)} HTTP\/1\.1\" \d+ \d+ \"-\" \".*\"\n\Z/
+  File.open("#{@tmpdir}/proxy.out").read.should =~ /\A\w+ - [^ ]+ \[[^\]]*\] \"GET #{Regexp.escape(@uri.to_s)} HTTP\/1\.1\" \d+ \d+ \"-\" \".*\"\n\Z/
 end
 
 Then /^the proxy should have been tunneled through$/ do
@@ -34,5 +34,5 @@ Then /^the proxy should have been tunneled through$/ do
 end
 
 Then /^the proxy should have been tunneled through with a (\d+) status code$/ do |code|
-  File.open("#{@tmpdir}/proxy.out").read.should =~ /^localhost - [^ ]+ \[[^\]]*\] \"CONNECT #{Regexp.escape(@uri.host)}:#{Regexp.escape(@uri.port.to_s)} HTTP\/1\.1\" #{Regexp.escape(code)} \d+ \"-\" \".*\"\n$/
+  File.open("#{@tmpdir}/proxy.out").read.should =~ /^\w+ - [^ ]+ \[[^\]]*\] \"CONNECT #{Regexp.escape(@uri.host)}:#{Regexp.escape(@uri.port.to_s)} HTTP\/1\.1\" #{Regexp.escape(code)} \d+ \"-\" \".*\"\n$/
 end
