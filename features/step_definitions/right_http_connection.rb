@@ -37,7 +37,9 @@ When /^I request that URL using RightHTTPConnection$/ do
   Given "a captive logger"
   hash = {:logger => @logger, :exception => RightHttpConnectionFailure}
   hash[:user_agent] = @user_agent if @user_agent
-  hash[:ca_file] = @ca_file if @ca_file
+ hash[:ca_file] = @ca_file if @ca_file
+ hash[:cert_file] = @client_cert_file if @client_cert_file
+ hash[:key_file] = @client_key_file if @client_key_file
   hash[:proxy_host] = @proxy_host if @proxy_host
   hash[:proxy_port] = @proxy_port if @proxy_port
   hash[:proxy_username] = @proxy_username if @proxy_username
@@ -47,9 +49,15 @@ When /^I request that URL using RightHTTPConnection$/ do
   @request = Net::HTTP::Get.new(@uri.request_uri)
   @request["Host"] = "#{@uri.host}:#{@uri.port}"
   begin
+	 puts @uri.host
+	 puts @uri.port
+	 puts @uri.scheme
     @result = @connection.request(:server => @uri.host, :port => @uri.port,
                                   :protocol => @uri.scheme, :request => @request)
+	puts @result.inspect
   rescue RightHttpConnectionFailure => e
+	 puts e.message
+	 puts e.backtrace 
     @result = nil
     @exception = e
   end
