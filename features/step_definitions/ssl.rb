@@ -35,14 +35,34 @@ Given /^a CA certification file not containing that server$/ do
   @ca_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec", "bad.ca"))
 end
 
+Given /^a test certificate authority file$/ do
+  @ca_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec/testca/", "cacert.pem"))
+end
+
+Given /^a test server certificate file$/ do
+  @server_cert_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec/server/", "cert.pem"))
+end
+
+Given /^a test server key file$/ do
+  @server_key_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec/server/", "key.pem"))
+end
+
+Given /^a test client certificate file$/ do
+  @client_cert_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec/client/", "cert.pem"))
+end
+
+Given /^a test client key file$/ do
+  @client_key_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec/client/", "key.pem"))
+end
+
 Given /^the strict failure option turned on$/ do
   @fail_if_ca_mismatch = true
 end
 
 Then /^there should be a warning about certificate verification failing$/ do
-  @output.string.should =~ /.*WARN -- : ##### 127\.0\.0\.1 certificate verify failed:.*/
+  @output.string.should =~ /.*ERROR -- : ##### 127\.0\.0\.1 certificate verify failed:.*/
 end
 
 Then /^there should not be a warning about certificate verification failing$/ do
-  @output.string.should_not =~ /.*WARN -- : ##### 127\.0\.0\.1 certificate verify failed:.*/
+  @output.string.should_not =~ /.*ERROR -- : ##### 127\.0\.0\.1 certificate verify failed:.*/
 end

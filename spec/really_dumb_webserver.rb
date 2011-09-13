@@ -23,7 +23,7 @@
 
 require 'webrick'
 
-ssl_cert, ssl_key = ARGV[0], ARGV[1]
+ssl_cert, ssl_key, ca_cert = ARGV[0], ARGV[1], ARGV[2]
 
 # Monkey patch bad User-Agent parsing
 module WEBrick::AccessLog
@@ -60,10 +60,12 @@ config[:AccessLog] = [[$stdout, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
 unless ssl_cert.nil? || ssl_key.nil?
   require 'webrick/https'
   config[:SSLEnable] = true
-  config[:SSLVerifyClient] = OpenSSL::SSL::VERIFY_NONE
+  config[:SSLVerifyClient] = OpenSSL::SSL::VERIFY_PEER | OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT 
   config[:SSLPrivateKey] = OpenSSL::PKey::RSA.new(File.open(ssl_key).read)
   config[:SSLCertificate] = OpenSSL::X509::Certificate.new(File.open(ssl_cert).read)
-  config[:SSLCertName] = [["CN", "Graham Hughes"]]
+  config[:SSLCACertificateFile] = ca_cert
+  #config[:SSLCertName] = [["CN", "Graham Hughes"]]
+  config[:SSLCertName] = [["CN", "MyTestCA"]]
 end
 $stdout.sync = true
 server = WEBrick::HTTPServer.new(config)
