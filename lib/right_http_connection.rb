@@ -319,13 +319,17 @@ them.
         ca_file = get_param(:ca_file)
         cert_file = get_param(:cert_file)
         key_file = get_param(:key_file)
+puts "ca_file: #{ca_file}"        
+puts "cert_file: #{cert_file}"        
+puts "key_file: #{key_file}"        
         if ca_file
+puts "************** key_file: #{key_file}"                  
           @http.verify_mode     = OpenSSL::SSL::VERIFY_PEER
           @http.verify_callback = verifyCallbackProc
           @http.verify_depth = 0
-#          @http.ca_file         = ca_file #OpenSSL::X509::Certificate.new(File.read(ca_file)) 
-#          @http.cert = OpenSSL::X509::Certificate.new(File.read(cert_file)) 
-#          @http.key = OpenSSL::PKey::RSA.new(File.read(key_file)) 
+          @http.ca_file         = ca_file #OpenSSL::X509::Certificate.new(File.read(ca_file)) 
+          @http.cert = OpenSSL::X509::Certificate.new(File.read(cert_file)) 
+          @http.key = OpenSSL::PKey::RSA.new(File.read(key_file)) 
         else
           @http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end

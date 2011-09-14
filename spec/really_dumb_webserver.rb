@@ -52,18 +52,22 @@ module WEBrick::AccessLog
   end
 end
 
-logger = WEBrick::Log.new($stderr, WEBrick::Log::WARN)
+fool = File.new("/tmp/test_webrick.txt", 'w')
+logger = WEBrick::Log.new(fool, WEBrick::Log::WARN)
+logger.warn "***************** starting"
 config = {}
 config[:Port] = 7890
 config[:Logger] = logger
-config[:AccessLog] = [[$stdout, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
+config[:AccessLog] = [[fool, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
 unless ssl_cert.nil? || ssl_key.nil?
   require 'webrick/https'
+  
+logger.warn "***************** #{ca_cert}"  
   config[:SSLEnable] = true
-  config[:SSLVerifyClient] = OpenSSL::SSL::VERIFY_NONE#PEER | OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT 
+  config[:SSLVerifyClient] = OpenSSL::SSL::VERIFY_PEER | OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT 
   config[:SSLPrivateKey] = OpenSSL::PKey::RSA.new(File.open(ssl_key).read)
   config[:SSLCertificate] = OpenSSL::X509::Certificate.new(File.open(ssl_cert).read)
-  config[:SSLVerifyDepth] = 0
+  config[:SSLVerifyDepth] = 20
   config[:SSLCACertificateFile] = ca_cert
   config[:SSLCertName] = [["CN", "Graham Hughes"]]
   #config[:SSLCertName] = [["CN", "MyTestCA"]]
@@ -72,6 +76,7 @@ $stdout.sync = true
 server = WEBrick::HTTPServer.new(config)
 
 server.mount_proc('/good') {|req, resp|
+logger.warn "something"  
   resp.status = 200
   resp['Content-Type'] = "text/plain"
   resp.body = "good"

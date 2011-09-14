@@ -47,7 +47,8 @@ Given /^a really dumb SSL enabled web server$/ do
          File.expand_path(File.join(File.dirname(__FILE__), "..", "..",
                                     "spec/server.crt")),
          File.expand_path(File.join(File.dirname(__FILE__), "..", "..",
-                                    "spec/server.key")))
+                                    "spec/server.key")),
+         File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec", "good.ca")))
   end
   Given "a server listening on port 7890"
 end

@@ -48,11 +48,11 @@ Given /^a test server key file$/ do
 end
 
 Given /^a test client certificate file$/ do
-  @client_cert_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec/client/", "cert.pem"))
+  @client_cert_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec/server.crt"))
 end
 
 Given /^a test client key file$/ do
-  @client_key_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec/client/", "key.pem"))
+  @client_key_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..","spec/server.key"))
 end
 
 Given /^the strict failure option turned on$/ do

@@ -14,6 +14,9 @@ Feature: RightHTTPConnection can connect to a secure web server
 	#     Then I should get the contents of the URL
 
  Scenario: normal operation
+   Given a test client certificate file
+   Given a test client key file
+
    Given a CA certification file containing that server
    Given an HTTPS URL
    When I request that URL using RightHTTPConnection
