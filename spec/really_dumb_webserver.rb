@@ -23,7 +23,7 @@
 
 require 'webrick'
 
-ssl_cert, ssl_key = ARGV[0], ARGV[1]
+ssl_cert, ssl_key, ca_cert = ARGV[0], ARGV[1], ARGV[2]
 
 # Monkey patch bad User-Agent parsing
 module WEBrick::AccessLog
@@ -52,7 +52,7 @@ module WEBrick::AccessLog
   end
 end
 
-logger = WEBrick::Log.new($stderr, WEBrick::Log::WARN)
+logger = WEBrick::Log.new($stderr, WEBrick::Log::WARN)#WEBrick::Log::DEBUG
 config = {}
 config[:Port] = 7890
 config[:Logger] = logger
@@ -60,10 +60,19 @@ config[:AccessLog] = [[$stdout, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
 unless ssl_cert.nil? || ssl_key.nil?
   require 'webrick/https'
   config[:SSLEnable] = true
-  config[:SSLVerifyClient] = OpenSSL::SSL::VERIFY_NONE
+  # http://www.openssl.org/docs/ssl/SSL_CTX_set_verify.html#
+  # SSL_VERIFY_FAIL_IF_NO_PEER_CERT
+  # => Server mode: if the client did not return a certificate, the TLS/SSL handshake is immediately terminated with a 'handshake failure' alert.
+  # => This flag must be used together with SSL_VERIFY_PEER.
+  config[:SSLVerifyClient] = OpenSSL::SSL::VERIFY_PEER
+  config[:SSLVerifyClient] |= OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT if ca_cert
   config[:SSLPrivateKey] = OpenSSL::PKey::RSA.new(File.open(ssl_key).read)
   config[:SSLCertificate] = OpenSSL::X509::Certificate.new(File.open(ssl_cert).read)
-  config[:SSLCertName] = [["CN", "Graham Hughes"]]
+  # KHRVI: option config[:SSLCertName] does make sense only when config[:SSLCertificate] isn't specified
+  # see: webrick/ssl.rb method :setup_ssl_context
+  # config[:SSLCertName] = [["CN", "Graham Hughes"]]
+  config[:SSLVerifyDepth] = 9
+  config[:SSLCACertificateFile] = ca_cert if ca_cert
 end
 $stdout.sync = true
 server = WEBrick::HTTPServer.new(config)

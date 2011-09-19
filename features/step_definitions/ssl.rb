@@ -22,7 +22,6 @@
 #++
 
 Given /^an HTTPS URL$/ do
-  Given "a really dumb SSL enabled web server"
   @uri = URI.parse("https://127.0.0.1:7890/good")
   @expected_contents = "good"
 end
@@ -33,6 +32,25 @@ end
 
 Given /^a CA certification file not containing that server$/ do
   @ca_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec", "bad.ca"))
+end
+
+Given /^a not verified test client certificate file$/ do
+  puts "*******************************"
+  puts "!!! PEM pass phrase: foobar !!!"
+  puts "*******************************"
+  @client_cert_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec/ca/ca.crt"))
+end
+
+Given /^a not verified test client key file$/ do
+  @client_key_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..","spec/ca/ca.key"))
+end
+
+Given /^a test client certificate file$/ do
+  @client_cert_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec/client/cert.pem"))
+end
+
+Given /^a test client key file$/ do
+  @client_key_file = File.expand_path(File.join(File.dirname(__FILE__), "..", "..","spec/client/key.pem"))
 end
 
 Given /^the strict failure option turned on$/ do

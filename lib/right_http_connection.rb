@@ -305,6 +305,7 @@ them.
 
       if @protocol == 'https'
         verifyCallbackProc = Proc.new{ |ok, x509_store_ctx|
+          # List of error codes: http://www.openssl.org/docs/apps/verify.html
           code = x509_store_ctx.error
           msg = x509_store_ctx.error_string
             #debugger
@@ -317,10 +318,25 @@ them.
         }
         @http.use_ssl = true
         ca_file = get_param(:ca_file)
+        cert_file = get_param(:cert_file)
+        key_file = get_param(:key_file)
+
         if ca_file
+          # Documentation for 'http.rb':
+          # : verify_mode, verify_mode=((|mode|))
+          #    Sets the flags for server the certification verification at
+          #    beginning of SSL/TLS session.
+          #    OpenSSL::SSL::VERIFY_NONE or OpenSSL::SSL::VERIFY_PEER is acceptable.
+          #
+          # KHRVI: looks like the constant VERIFY_FAIL_IF_NO_PEER_CERT is not acceptable
           @http.verify_mode     = OpenSSL::SSL::VERIFY_PEER
           @http.verify_callback = verifyCallbackProc
           @http.ca_file         = ca_file
+          # The depth count is 'level 0:peer certificate', 'level 1: CA certificate', 'level 2: higher level CA certificate', and so on.
+          # Setting the maximum depth to 2 allows the levels 0, 1, and 2. The default depth limit is 9, allowing for the peer certificate and additional 9 CA certificates.
+          @http.verify_depth    = 9
+          @http.cert            = OpenSSL::X509::Certificate.new(File.read(cert_file)) if cert_file
+          @http.key             = OpenSSL::PKey::RSA.new(File.read(key_file)) if key_file
         else
           @http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end

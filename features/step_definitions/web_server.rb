@@ -52,6 +52,26 @@ Given /^a really dumb SSL enabled web server$/ do
   Given "a server listening on port 7890"
 end
 
+Given /^a really dumb SSL handshake enabled web server$/ do
+  @subprocess_pids << fork do
+    ENV['RACK_ENV'] = "test"
+    Dir.chdir(@tmpdir)
+    STDIN.close
+    output = File.open("#{@tmpdir}/weblog.out", "w")
+    STDOUT.reopen(output)
+    exec("ruby",
+         File.expand_path(File.join(File.dirname(__FILE__), "..", "..",
+                                    "spec/really_dumb_webserver.rb")),
+         File.expand_path(File.join(File.dirname(__FILE__), "..", "..",
+                                    "spec/server.crt")),
+         File.expand_path(File.join(File.dirname(__FILE__), "..", "..",
+                                    "spec/server.key")),
+         File.expand_path(File.join(File.dirname(__FILE__), "..", "..",
+                                    "spec/client/cacert.pem")))
+  end
+  Given "a server listening on port 7890"
+end
+
 Given /^a URL$/ do
   Given "a really dumb web server"
   @uri = URI.parse("http://127.0.0.1:7890/good")
