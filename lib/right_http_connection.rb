@@ -417,7 +417,7 @@ them.
           @logger.debug("#{err_header} server #{@server} closed connection")
           @http = nil
 
-            # if we have waited long enough - raise an exception...
+          # if we have waited long enough - raise an exception...
           if raise_on_eof_exception?
             @logger.warn("#{err_header} raising #{exception} due to permanent EOF being received from #{@server}, error age: #{Time.now.to_i - eof_time.to_i}")
             raise exception.new("Permanent EOF is being received from #{@server}.")
@@ -427,6 +427,23 @@ them.
             # We will be retrying the request, so reset the file pointer
             reset_fileptr_offset(request, mypos)
           end
+        rescue SystemCallError => e
+          @http = nil
+          if(e.is_a?(Errno::ECONNRESET)) 
+			@logger.debug("#{err_header} server #{@server} reset connection") 
+			error_add(e.message)
+			@logger.warn("#{err_header} request failure count: #{error_count}, exception: #{e.inspect}")
+
+			if(error_count > 5) 
+			   @logger.warn("#{err_header} raising #{exception} due to system call error #{@server} #{error_count} times, error age: #{Time.now.to_i - eof_time.to_i}")
+			   raise exception.new("SystemCallError is received from #{@server}.")
+			else 
+			   # Sleep same as eof error before new retry
+			   sleep(add_eof)
+			   # We will be retrying the request, so reset the file pointer
+			   reset_fileptr_offset(request, mypos)
+		 	end
+		  end
         rescue Exception => e  # See comment at bottom for the list of errors seen...
           @http = nil
           timeout_exception = e.is_a?(Errno::ETIMEDOUT) || e.is_a?(Timeout::Error)
@@ -451,7 +468,6 @@ them.
 
           # We will be retrying the request, so reset the file pointer
           reset_fileptr_offset(request, mypos)
-
         end
       end
     end
