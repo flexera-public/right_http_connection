@@ -262,6 +262,8 @@ them.
 
     def get_fileptr_offset(request_params)
       request_params[:request].body.pos
+    rescue Interrupt, SystemExit
+      raise
     rescue Exception => e
       # Probably caught this because the body doesn't support the pos() method, like if it is a socket.
       # Just return 0 and get on with life.
@@ -272,6 +274,8 @@ them.
       if(request.body_stream && request.body_stream.respond_to?(:pos))
         begin
           request.body_stream.pos = offset
+        rescue Interrupt, SystemExit
+          raise
         rescue Exception => e
           @logger.warn("Failed file pointer reset; aborting HTTP retries." +
                              " -- #{err_header} #{e.inspect}")
