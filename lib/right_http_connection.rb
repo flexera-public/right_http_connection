@@ -434,9 +434,9 @@ them.
 			error_add(e.message)
 			@logger.warn("#{err_header} request failure count: #{error_count}, exception: #{e.inspect}")
 
-			if(error_count > 5) 
-			   @logger.warn("#{err_header} raising #{exception} due to system call error #{@server} #{error_count} times, error age: #{Time.now.to_i - eof_time.to_i}")
-			   raise exception.new("SystemCallError is received from #{@server}.")
+			if(error_count > current_params[:http_connection_retry_count]*3) 
+			   @logger.warn("#{err_header} raising #{exception} due to system call error received by #{@server} #{error_count} times")
+			   raise exception.new("SystemCallError : #{Errno::ECONNRESET::Errno} received from #{@server} #{error_count} times")
 			else 
 			   # Sleep same as eof error before new retry
 			   sleep(add_eof)
