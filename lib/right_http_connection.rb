@@ -75,6 +75,14 @@ them.
     HTTP_CONNECTION_READ_TIMEOUT  = 120 unless defined?(HTTP_CONNECTION_READ_TIMEOUT)
     # Length of the post-error probationary period during which all requests will fail
     HTTP_CONNECTION_RETRY_DELAY   = 15  unless defined?(HTTP_CONNECTION_RETRY_DELAY)
+    # Secure communication between gateway and clouds 
+    USE_SSL = true  unless defined?(HTTP_USE_SSL)
+	# SSL certificate authority file path
+    CA_FILE_PATH = "/opt/rightscale/certs" unless defined?(CA_FILE_PATH)
+	# SSL client certificate file path
+    CERT_FILE_PATH = "/opt/rightscale/certs"  unless defined?(CERT_FILE_PATH)
+	# SSL client key file path
+    KEY_FILE_PATH = "/opt/rightscale/certs"  unless defined?(KEY_FILE_PATH)
 
     #--------------------
     # class methods
@@ -85,6 +93,10 @@ them.
     @@params[:http_connection_open_timeout] = HTTP_CONNECTION_OPEN_TIMEOUT
     @@params[:http_connection_read_timeout] = HTTP_CONNECTION_READ_TIMEOUT
     @@params[:http_connection_retry_delay]  = HTTP_CONNECTION_RETRY_DELAY
+    @@params[:use_ssl]  = USE_SSL 
+    @@params[:ca_file_path]  = CA_FILE_PATH 
+    @@params[:cert_file_path]  = CERT_FILE_PATH 
+    @@params[:key_file_path]  = KEY_FILE_PATH 
 
     # Query the global (class-level) parameters:
     #
@@ -141,6 +153,12 @@ them.
       @params[:http_connection_open_timeout] ||= @@params[:http_connection_open_timeout]
       @params[:http_connection_read_timeout] ||= @@params[:http_connection_read_timeout]
       @params[:http_connection_retry_delay]  ||= @@params[:http_connection_retry_delay]
+
+      @params[:use_ssl]  ||= @@params[:use_ssl]
+      @params[:ca_file_path]  ||= @@params[:ca_file_path]
+      @params[:cert_file_path]  ||= @@params[:cert_file_path]
+      @params[:key_file_path]  ||= @@params[:key_file_path]
+
       @params[:proxy_host] ||= @@params[:proxy_host]
       @params[:proxy_port] ||= @@params[:proxy_port]
       @params[:proxy_username] ||= @@params[:proxy_username]
