@@ -76,7 +76,7 @@ them.
     # Length of the post-error probationary period during which all requests will fail
     HTTP_CONNECTION_RETRY_DELAY   = 15  unless defined?(HTTP_CONNECTION_RETRY_DELAY)
     # Secure communication between gateway and clouds 
-    USE_SSL = true  unless defined?(HTTP_USE_SSL)
+    USE_SSL = true  unless defined?(USE_SSL)
 	# SSL certificate authority file path
     CA_FILE_PATH = "/opt/rightscale/certs" unless defined?(CA_FILE_PATH)
 	# SSL client certificate file path
