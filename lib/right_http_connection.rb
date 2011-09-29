@@ -75,14 +75,6 @@ them.
     HTTP_CONNECTION_READ_TIMEOUT  = 120 unless defined?(HTTP_CONNECTION_READ_TIMEOUT)
     # Length of the post-error probationary period during which all requests will fail
     HTTP_CONNECTION_RETRY_DELAY   = 15  unless defined?(HTTP_CONNECTION_RETRY_DELAY)
-    # Secure communication between gateway and clouds 
-    USE_CLIENT_AUTH = false  unless defined?(USE_CLIENT_AUTH)
-	# SSL certificate authority file path
-    CA_FILE = "" unless defined?(CA_FILE)
-	# SSL client certificate file path
-    CERT_FILE = ""  unless defined?(CERT_FILE)
-	# SSL client key file path
-    KEY_FILE = ""  unless defined?(KEY_FILE)
 
     #--------------------
     # class methods
@@ -93,10 +85,6 @@ them.
     @@params[:http_connection_open_timeout] = HTTP_CONNECTION_OPEN_TIMEOUT
     @@params[:http_connection_read_timeout] = HTTP_CONNECTION_READ_TIMEOUT
     @@params[:http_connection_retry_delay]  = HTTP_CONNECTION_RETRY_DELAY
-    @@params[:use_client_auth]  = USE_CLIENT_AUTH 
-    @@params[:ca_file]  = CA_FILE
-    @@params[:cert_file]  = CERT_FILE
-    @@params[:key_file]  = KEY_FILE
 
     # Query the global (class-level) parameters:
     #
@@ -153,12 +141,6 @@ them.
       @params[:http_connection_open_timeout] ||= @@params[:http_connection_open_timeout]
       @params[:http_connection_read_timeout] ||= @@params[:http_connection_read_timeout]
       @params[:http_connection_retry_delay]  ||= @@params[:http_connection_retry_delay]
-
-      @params[:use_client_auth]  ||= @@params[:use_client_auth]
-      @params[:ca_file]  ||= @@params[:ca_file]
-      @params[:cert_file]  ||= @@params[:cert_file]
-      @params[:key_file]  ||= @@params[:key_file]
-
       @params[:proxy_host] ||= @@params[:proxy_host]
       @params[:proxy_port] ||= @@params[:proxy_port]
       @params[:proxy_username] ||= @@params[:proxy_username]
@@ -351,9 +333,7 @@ them.
           # The depth count is 'level 0:peer certificate', 'level 1: CA certificate', 'level 2: higher level CA certificate', and so on.
           # Setting the maximum depth to 2 allows the levels 0, 1, and 2. The default depth limit is 9, allowing for the peer certificate and additional 9 CA certificates.
           @http.verify_depth    = 9
-		  if(@params[:use_client_auth])
-			 cert_file = get_param(:cert_file)
-			 key_file = get_param(:key_file)
+		  if(get_param[:use_client_auth] && (cert_file = get_param(:cert_file)) && (key_file = get_param(:key_file))
 			 @http.cert            = OpenSSL::X509::Certificate.new(File.read(cert_file)) if cert_file
 			 @http.key             = OpenSSL::PKey::RSA.new(File.read(key_file)) if key_file
 		  end
