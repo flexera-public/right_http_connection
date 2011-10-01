@@ -99,6 +99,12 @@ module Net
     end
 
     def send_request_with_body_stream(sock, ver, path, f, send_only=nil)
+      # KD: Fix 'content-length': it must not be greater than a piece of file left to be read.
+      # Otherwise the connection may behave like crazy causing 4xx or 5xx responses      
+      file_size           = f.respond_to?(:lstat) ? f.lstat.size : f.size          
+      bytes_to_read       = [ file_size - f.pos, self.content_length.to_i ].sort.first
+      self.content_length = bytes_to_read
+      #        
       unless content_length() or chunked?
         raise ArgumentError,
             "Content-Length not given and Transfer-Encoding is not `chunked'"
@@ -112,8 +118,14 @@ module Net
           end
           sock.write "0\r\n\r\n"
         else
-          while s = f.read(@@local_read_size)
+          # KD: When we read/write over file EOF it sometimes make the connection unstable
+          read_size = [ @@local_read_size, bytes_to_read ].sort.first
+          while s = f.read(read_size)
             sock.write s
+            # Make sure we do not read over EOF or more than expected content-length
+            bytes_to_read -= read_size
+            break if bytes_to_read <= 0
+            read_size = bytes_to_read if bytes_to_read < read_size
           end
         end
       end

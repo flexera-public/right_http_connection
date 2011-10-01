@@ -470,7 +470,8 @@ them.
             # We will be retrying the request, so reset the file pointer
             reset_fileptr_offset(request, mypos)
           end
-        rescue Exception => e  # See comment at bottom for the list of errors seen...
+        rescue Interrupt, SystemCallError => e  # See comment at bottom for the list of errors seen...
+#        rescue Exception => e  # See comment at bottom for the list of errors seen...
           @http = nil
           timeout_exception = e.is_a?(Errno::ETIMEDOUT) || e.is_a?(Timeout::Error)
           # Omit retries if it was explicitly requested
@@ -494,7 +495,6 @@ them.
 
           # We will be retrying the request, so reset the file pointer
           reset_fileptr_offset(request, mypos)
-
         end
       end
     end
