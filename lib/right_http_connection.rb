@@ -333,7 +333,7 @@ them.
           # The depth count is 'level 0:peer certificate', 'level 1: CA certificate', 'level 2: higher level CA certificate', and so on.
           # Setting the maximum depth to 2 allows the levels 0, 1, and 2. The default depth limit is 9, allowing for the peer certificate and additional 9 CA certificates.
           @http.verify_depth    = 9
-		  if get_param[:use_client_auth] && (cert_file = get_param(:cert_file)) && (key_file = get_param(:key_file))
+		  if get_param(:use_client_auth) && (cert_file = get_param(:cert_file)) && (key_file = get_param(:key_file))
 			 @http.cert            = OpenSSL::X509::Certificate.new(File.read(cert_file)) if cert_file
 			 @http.key             = OpenSSL::PKey::RSA.new(File.read(key_file)) if key_file
 		  end
