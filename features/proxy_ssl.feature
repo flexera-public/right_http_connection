@@ -44,6 +44,7 @@ Feature: RightHTTPConnection can connect to a secure web server through a proxy
     And a proxy
     And a really dumb SSL enabled web server
     And a CA certification file not containing that server
+    And enabled server cert verification
     And the strict failure option turned on
     When I request that URL using RightHTTPConnection
     Then I should get an exception
