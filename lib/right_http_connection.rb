@@ -340,7 +340,7 @@ them.
           @http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
 
-        if get_param(:use_client_auth) && (cert_file = get_param(:cert_file)) && (key_file = get_param(:key_file))
+        if (cert_file = get_param(:cert_file)) && (key_file = get_param(:key_file))
           @http.verify_callback = verifyCallbackProc
           @http.cert            = OpenSSL::X509::Certificate.new(File.read(cert_file)) if cert_file
           @http.key             = OpenSSL::PKey::RSA.new(File.read(key_file)) if key_file

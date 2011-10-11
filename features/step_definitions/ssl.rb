@@ -61,10 +61,6 @@ Given /^enabled server cert verification$/ do
   @use_server_auth = true
 end
 
-Given /^enabled client authentification$/ do
-  @use_client_auth = true
-end
-
 Then /^there should be a warning about certificate verification failing$/ do
   @output.string.should =~ /.*WARN -- : ##### 127\.0\.0\.1 certificate verify failed:.*/
 end

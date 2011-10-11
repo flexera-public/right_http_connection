@@ -14,7 +14,6 @@ Feature: RightHTTPConnection can connect to a secure web server
     Given a test client key file
     Given a CA certification file containing that server
     And enabled server cert verification
-    And enabled client authentification
     Given an HTTPS URL
     And a really dumb SSL handshake enabled web server
     When I request that URL using RightHTTPConnection
@@ -24,7 +23,6 @@ Feature: RightHTTPConnection can connect to a secure web server
   Scenario: ssl handshake without server cert verification
     Given a test client certificate file
     Given a test client key file
-    And enabled client authentification
     Given an HTTPS URL
     And a really dumb SSL handshake enabled web server
     When I request that URL using RightHTTPConnection
@@ -44,7 +42,6 @@ Feature: RightHTTPConnection can connect to a secure web server
 
   Scenario: normal operation with a CA certification file
     Given a CA certification file containing that server
-    And enabled client authentification
     Given an HTTPS URL
     And a really dumb SSL enabled web server
     When I request that URL using RightHTTPConnection
