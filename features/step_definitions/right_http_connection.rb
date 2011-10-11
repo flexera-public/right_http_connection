@@ -42,6 +42,8 @@ When /^I request that URL using RightHTTPConnection$/ do
   hash[:key_file] = @client_key_file if @client_key_file
   hash[:proxy_host] = @proxy_host if @proxy_host
   hash[:proxy_port] = @proxy_port if @proxy_port
+  hash[:use_server_auth] = @use_server_auth if @use_server_auth
+
   hash[:proxy_username] = @proxy_username if @proxy_username
   hash[:proxy_password] = @proxy_password if @proxy_password
   hash[:fail_if_ca_mismatch] = true if @fail_if_ca_mismatch
