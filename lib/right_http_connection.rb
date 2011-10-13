@@ -342,13 +342,14 @@ them.
         
         cert_file = get_param(:cert_file)
         key_file = get_param(:key_file)
-        if File.exists?(cert_file) && File.exists?(key_file)
+        if (cert_file && File.exists?(cert_file)) && (key_file && File.exists?(key_file))
           begin
             @http.verify_callback = verifyCallbackProc
             @http.cert = OpenSSL::X509::Certificate.new(File.read(cert_file))
             @http.key  = OpenSSL::PKey::RSA.new(File.read(key_file))
           rescue OpenSSL::PKey::RSAError, OpenSSL::X509::CertificateError => e
-            @logger.warn "##### Error loading SSL client cert or key: #{e.message} :: backtrace #{e.backtrace}"
+            @logger.error "##### Error loading SSL client cert or key: #{e.message} :: backtrace #{e.backtrace}"
+            raise e
           end
         end
       end
