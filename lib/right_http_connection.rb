@@ -322,7 +322,7 @@ them.
         }
         @http.use_ssl = true
 
-        if ca_file = get_param(:ca_file)
+        if ca_file = get_param(:ca_file) && File.exists?(ca_file)
           # Documentation for 'http.rb':
           # : verify_mode, verify_mode=((|mode|))
           #    Sets the flags for server the certification verification at
@@ -331,7 +331,7 @@ them.
           #
           # KHRVI: looks like the constant VERIFY_FAIL_IF_NO_PEER_CERT is not acceptable
           @http.verify_callback = verifyCallbackProc
-          @http.ca_file         = ca_file
+          @http.ca_file= ca_file
           @http.verify_mode = get_param(:use_server_auth) ? OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE
           # The depth count is 'level 0:peer certificate', 'level 1: CA certificate', 'level 2: higher level CA certificate', and so on.
           # Setting the maximum depth to 2 allows the levels 0, 1, and 2. The default depth limit is 9, allowing for the peer certificate and additional 9 CA certificates.
@@ -339,11 +339,17 @@ them.
         else
           @http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
-
-        if (cert_file = get_param(:cert_file)) && (key_file = get_param(:key_file))
-          @http.verify_callback = verifyCallbackProc
-          @http.cert            = OpenSSL::X509::Certificate.new(File.read(cert_file)) if cert_file
-          @http.key             = OpenSSL::PKey::RSA.new(File.read(key_file)) if key_file
+        
+        cert_file = get_param(:cert_file)
+        key_file = get_param(:key_file)
+        if File.exists?(cert_file) && File.exists?(key_file)
+          begin
+            @http.verify_callback = verifyCallbackProc
+            @http.cert = OpenSSL::X509::Certificate.new(File.read(cert_file))
+            @http.key  = OpenSSL::PKey::RSA.new(File.read(key_file))
+          rescue OpenSSL::PKey::RSAError, OpenSSL::X509::CertificateError => e
+            @logger.warn "##### Error loading SSL client cert or key: #{e.message} :: backtrace #{e.backtrace}"
+          end
         end
       end
       # open connection
