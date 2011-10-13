@@ -322,7 +322,8 @@ them.
         }
         @http.use_ssl = true
 
-        if ca_file = get_param(:ca_file) && File.exists?(ca_file)
+        ca_file = get_param(:ca_file)
+        if ca_file && File.exists?(ca_file)
           # Documentation for 'http.rb':
           # : verify_mode, verify_mode=((|mode|))
           #    Sets the flags for server the certification verification at
