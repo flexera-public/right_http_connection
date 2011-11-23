@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2007-2008 RightScale Inc
+# Copyright (c) 2007-2011 RightScale Inc
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -341,8 +341,8 @@ them.
           @http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
         
-        cert_file = get_param(:cert_file)
-        key_file = get_param(:key_file)
+        cert_file = get_param(:cert_file, request_params)
+        key_file = get_param(:key_file, request_params)
         if (cert_file && File.exists?(cert_file)) && (key_file && File.exists?(key_file))
           begin
             @http.verify_callback = verifyCallbackProc
@@ -353,6 +353,20 @@ them.
             raise e
           end
         end
+
+        cert = get_param(:cert, request_params)
+        key = get_param(:key, request_params)
+        if cert && key
+          begin
+            @http.verify_callback = verifyCallbackProc
+            @http.cert = OpenSSL::X509::Certificate.new(cert)
+            @http.key  = OpenSSL::PKey::RSA.new(key)
+          rescue OpenSSL::PKey::RSAError, OpenSSL::X509::CertificateError => e
+            @logger.error "##### Error loading SSL client cert or key: #{e.message} :: backtrace #{e.backtrace}"
+            raise e
+          end
+        end
+
       end
       # open connection
       @http.start
