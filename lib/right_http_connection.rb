@@ -479,7 +479,7 @@ them.
             # #6481:
             # ... When creating a resource in EC2 (instance, volume, snapshot, etc) it is undetermined what happened if the call times out.
             # The resource may or may not have been created in EC2. Retrying the call may cause multiple resources to be created...
-            raise e
+            raise exception.new(e.message)
           end
           # if ctrl+c is pressed - we have to reraise exception to terminate proggy
           if e.is_a?(Interrupt) && !timeout_exception
