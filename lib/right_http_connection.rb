@@ -470,24 +470,26 @@ them.
             # We will be retrying the request, so reset the file pointer
             reset_fileptr_offset(request, mypos)
           end
-        rescue Interrupt, SystemCallError => e  # See comment at bottom for the list of errors seen...
-#        rescue Exception => e  # See comment at bottom for the list of errors seen...
+        rescue ArgumentError => e
           @http = nil
-          timeout_exception = e.is_a?(Errno::ETIMEDOUT) || e.is_a?(Timeout::Error)
-          # Omit retries if it was explicitly requested
-          if current_params[:raise_on_timeout] && timeout_exception
+          if e.message.include?('wrong number of arguments (5 for 4)')
+            # seems our net_fix patch was overriden...
+            raise exception.new('incompatible Net::HTTP monkey-patch')
+          else
+            raise e
+          end
+        rescue Timeout::Error, SocketError, SystemCallError, Interrupt => e  # See comment at bottom for the list of errors seen...
+          @http = nil          
+          if e.is_a?(Errno::ETIMEDOUT) || e.is_a?(Timeout::Error)
+            # Omit retries if it was explicitly requested
             # #6481:
             # ... When creating a resource in EC2 (instance, volume, snapshot, etc) it is undetermined what happened if the call times out.
             # The resource may or may not have been created in EC2. Retrying the call may cause multiple resources to be created...
-            raise exception.new(e.message)
-          end
-          # if ctrl+c is pressed - we have to reraise exception to terminate proggy
-          if e.is_a?(Interrupt) && !timeout_exception
+            raise exception.new("#{e.class.name}: #{e.message}") if current_params[:raise_on_timeout]
+          elsif e.is_a?(Interrupt)
+            # if ctrl+c is pressed - we have to reraise exception to terminate proggy
             @logger.debug( "#{err_header} request to server #{@server} interrupted by ctrl-c")
-            raise
-          elsif e.is_a?(ArgumentError) && e.message.include?('wrong number of arguments (5 for 4)')
-            # seems our net_fix patch was overriden...
-            raise exception.new('incompatible Net::HTTP monkey-patch')
+            raise e
           end
           # oops - we got a banana: log it
           error_add(e.message)
