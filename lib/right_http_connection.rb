@@ -207,7 +207,9 @@ them.
     end
 
     # add an error for a server
-    def error_add(message)
+    def error_add(error)
+      message = error
+      message = "#{error.class.name}: #{error.message}" if error.is_a?(Exception)
       @state[@server] = { :count => error_count+1, :time => Time.now, :message => message }
     end
 
@@ -341,21 +343,14 @@ them.
           @http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
         
+        # CERT
         cert_file = get_param(:cert_file, request_params)
-        key_file = get_param(:key_file, request_params)
-        if (cert_file && File.exists?(cert_file)) && (key_file && File.exists?(key_file))
-          begin
-            @http.verify_callback = verifyCallbackProc
-            @http.cert = OpenSSL::X509::Certificate.new(File.read(cert_file))
-            @http.key  = OpenSSL::PKey::RSA.new(File.read(key_file))
-          rescue OpenSSL::PKey::RSAError, OpenSSL::X509::CertificateError => e
-            @logger.error "##### Error loading SSL client cert or key: #{e.message} :: backtrace #{e.backtrace}"
-            raise e
-          end
-        end
-
-        cert = get_param(:cert, request_params)
-        key = get_param(:key, request_params)
+        cert      = File.read(cert_file) if cert_file && File.exists?(cert_file)
+        cert    ||= get_param(:cert, request_params)
+        # KEY
+        key_file  = get_param(:key_file,  request_params)
+        key       = File.read(key_file) if key_file && File.exists?(key_file)
+        key     ||= get_param(:key,  request_params)
         if cert && key
           begin
             @http.verify_callback = verifyCallbackProc
@@ -366,7 +361,6 @@ them.
             raise e
           end
         end
-
       end
       # open connection
       @http.start
@@ -495,7 +489,7 @@ them.
             raise e
           end
           # oops - we got a banana: log it
-          error_add(e.message)
+          error_add(e)
           @logger.warn("#{err_header} request failure count: #{error_count}, exception: #{e.inspect}")
 
           # We will be retrying the request, so reset the file pointer
