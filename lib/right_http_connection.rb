@@ -457,8 +457,9 @@ them.
 
         # EOFError means the server closed the connection on us.
         rescue EOFError => e
+          finish(e.message)
+          
           @logger.debug("#{err_header} server #{@server} closed connection")
-          @http = nil
 
             # if we have waited long enough - raise an exception...
           if raise_on_eof_exception?
@@ -471,7 +472,8 @@ them.
             reset_fileptr_offset(request, mypos)
           end
         rescue ArgumentError => e
-          @http = nil
+          finish(e.message)
+          
           if e.message.include?('wrong number of arguments (5 for 4)')
             # seems our net_fix patch was overriden...
             raise exception.new('incompatible Net::HTTP monkey-patch')
@@ -479,7 +481,8 @@ them.
             raise e
           end
         rescue Timeout::Error, SocketError, SystemCallError, Interrupt => e  # See comment at bottom for the list of errors seen...
-          @http = nil          
+          finish(e.message)
+          
           if e.is_a?(Errno::ETIMEDOUT) || e.is_a?(Timeout::Error)
             # Omit retries if it was explicitly requested
             # #6481:
@@ -507,6 +510,8 @@ them.
         @logger.info("Closing #{@http.use_ssl? ? 'HTTPS' : 'HTTP'} connection to #{@http.address}:#{@http.port}#{reason}")
         @http.finish
       end
+    ensure
+      @http = nil
     end
 
   # Errors received during testing:
