@@ -91,7 +91,7 @@ module Net
     private
 
     def send_request_with_body(sock, ver, path, body, send_only=nil)
-      self.content_length = body.length
+      self.content_length = body.respond_to?(:bytesize) ? body.bytesize : body.length
       delete 'Transfer-Encoding'
       supply_default_content_type
       write_header(sock, ver, path) unless send_only == :body
