@@ -34,8 +34,10 @@ Feature: RightHTTPConnection can connect to a web server
     Given a URL that hangs all the time
     When I request that URL using RightHTTPConnection
     Then I should get an exception
+    And Exception message should have full url
 
   Scenario: consistent open timeout
     Given a URL whose server is listening but always down
     When I request that URL using RightHTTPConnection
     Then I should get an exception
+    And Exception message should have full url
