@@ -220,7 +220,7 @@ them.
 
     # Error message stuff...
     def banana_message
-      return "#{@server} temporarily unavailable: (#{error_message})"
+      return "#{@protocol}://#{@server}:#{@port} temporarily unavailable: (#{error_message})"
     end
 
     def err_header

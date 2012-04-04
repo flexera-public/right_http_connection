@@ -88,6 +88,12 @@ Then /^I should get an exception$/ do
   @exception.should_not be_nil
 end
 
+Then /^Exception message should have full url$/ do
+  @exception.message.should =~ /#{@uri.scheme}/
+  @exception.message.should =~ /#{@uri.host}/
+  @exception.message.should =~ /#{@uri.port}/
+end
+
 Then /^I should get told to authenticate correctly$/ do
   @result.should be_kind_of(Net::HTTPProxyAuthenticationRequired)
   @connection.should have_no_errors_in(@output.string)

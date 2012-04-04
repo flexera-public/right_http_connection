@@ -59,9 +59,11 @@ Feature: RightHTTPConnection can connect to a web server through a proxy
     And a proxy
     When I request that URL using RightHTTPConnection
     Then I should get an exception
+    And Exception message should have full url
 
   Scenario: consistent open timeout
     Given a URL whose server is listening but always down
     And a proxy
     When I request that URL using RightHTTPConnection
     Then I should get an exception
+    And Exception message should have full url
