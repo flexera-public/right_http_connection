@@ -82,7 +82,14 @@ module Net
       if @body
         send_request_with_body sock, ver, path, @body, send_only
       elsif @body_stream
-        send_request_with_body_stream sock, ver, path, @body_stream, send_only
+        begin
+          send_request_with_body_stream sock, ver, path, @body_stream, send_only
+        rescue ArgumentError
+          # this rescue is called when users have both net_http_connection and aws-s3 gem installed.
+          # For whatever reason, sometimes this method gets redefined by aws-s3 (depending on load order)
+          # the aws-s3 gem only has 4 options, not 5, so users see an ArgumentError (5 for 4) when this gets called.
+          send_request_with_body_stream sock, ver, path, @body_stream
+        end
       else
         write_header(sock, ver, path)
       end
