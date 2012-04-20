@@ -22,7 +22,7 @@
 #++
 
 require 'rubygems'
-require File.expand_path(File.join(File.dirname(__FILE__), 'lib', 'version'))
+require File.expand_path(File.join(File.dirname(__FILE__), 'lib', 'base', 'version'))
 
 Gem::Specification.new do |spec|
   spec.name = 'right_http_connection'
