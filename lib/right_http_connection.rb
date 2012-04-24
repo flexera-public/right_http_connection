@@ -27,9 +27,9 @@ require "time"
 require "logger"
 
 $:.unshift(File.dirname(__FILE__))
-require 'version'
-require 'support'
-require "net_fix"
+require 'base/version'
+require 'base/support'
+require 'base/net_fix'
 
 module Rightscale
 
