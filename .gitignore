@@ -1,5 +1,6 @@
 *.sw?
 *.DS_Store
+.idea
 pkg/
 /spec/ca/01.pem
 /spec/ca/demoCA/index.txt.attr

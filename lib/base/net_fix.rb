@@ -100,15 +100,21 @@ module Net
 
     def send_request_with_body_stream(sock, ver, path, f, send_only=nil)
       # KD: Fix 'content-length': it must not be greater than a piece of file left to be read.
-      # Otherwise the connection may behave like crazy causing 4xx or 5xx responses      
-      file_size           = f.respond_to?(:lstat) ? f.lstat.size : f.size          
-      bytes_to_read       = [ file_size - f.pos, self.content_length.to_i ].sort.first
-      self.content_length = bytes_to_read
-      #        
+      # Otherwise the connection may behave like crazy causing 4xx or 5xx responses
+      #
+      # Only do this helpful thing if the stream responds to :pos (it may be something
+      # that responds to :read and :size but not :pos).
+      if f.respond_to?(:pos)
+        file_size           = f.respond_to?(:lstat) ? f.lstat.size : f.size
+        bytes_to_read       = [ file_size - f.pos, self.content_length.to_i ].sort.first
+        self.content_length = bytes_to_read
+      end
+
       unless content_length() or chunked?
         raise ArgumentError,
             "Content-Length not given and Transfer-Encoding is not `chunked'"
       end
+      bytes_to_read ||= content_length()
       supply_default_content_type
       write_header(sock, ver, path) unless send_only == :body
       unless send_only == :header
