@@ -393,6 +393,11 @@ them.
 
 =end
     def request(request_params, &block)
+      # Re-establish the connection if any of auth params has changed
+      same_auth_params_as_before = [:cert, :key, :cert_file, :key_file, :ca_file].select do |param|
+        request_params[param] != get_param(param)
+      end.empty?
+
       current_params = @params.merge(request_params)
       exception = get_param(:exception, current_params) || RuntimeError
 
@@ -401,9 +406,10 @@ them.
       loop do
         current_params[:protocol] ||= (current_params[:port] == 443 ? 'https' : 'http')
         # (re)open connection to server if none exists or params has changed
-        same_server_as_before = @server   == current_params[:server] &&
-                                @port     == current_params[:port]   &&
-                                @protocol == current_params[:protocol]
+        same_server_as_before = @server   == current_params[:server]   &&
+                                @port     == current_params[:port]     &&
+                                @protocol == current_params[:protocol] &&
+                                same_auth_params_as_before
 
         # if we are inside a delay between retries: no requests this time!
         # (skip this step if the endpoint has changed)
@@ -427,6 +433,7 @@ them.
                  @http.started? &&
                  same_server_as_before
             start(current_params)
+            same_auth_params_as_before = true
           end
 
           # Detect if the body is a streamable object like a file or socket.  If so, stream that
