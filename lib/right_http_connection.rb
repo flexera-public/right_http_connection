@@ -310,12 +310,6 @@ them.
           # List of error codes: http://www.openssl.org/docs/apps/verify.html
           code = x509_store_ctx.error
           msg = x509_store_ctx.error_string
-            #debugger
-          if code == 0
-            @logger.info "##### Certificate verification passed. #####"
-          else
-            @logger.warn("##### #{@server} certificate verify failed: #{msg}")
-          end
           if request_params[:fail_if_ca_mismatch] && code != 0
             false
           else
