@@ -141,10 +141,10 @@ them.
       @params[:http_connection_open_timeout] ||= @@params[:http_connection_open_timeout]
       @params[:http_connection_read_timeout] ||= @@params[:http_connection_read_timeout]
       @params[:http_connection_retry_delay]  ||= @@params[:http_connection_retry_delay]
-      @params[:proxy_host] ||= @@params[:proxy_host]
-      @params[:proxy_port] ||= @@params[:proxy_port]
-      @params[:proxy_username] ||= @@params[:proxy_username]
-      @params[:proxy_password] ||= @@params[:proxy_password]
+      @params[:proxy_host] ||= @@params[:proxy_host] || ENV['HTTP_PROXY_HOST']
+      @params[:proxy_port] ||= @@params[:proxy_port] || ENV['HTTP_PROXY_PORT']
+      @params[:proxy_username] ||= @@params[:proxy_username] || ENV['HTTP_PROXY_USERNAME']
+      @params[:proxy_password] ||= @@params[:proxy_password] || ENV['HTTP_PROXY_PASSWORD']
       @http   = nil
       @server = nil
       @logger = get_param(:logger) ||
@@ -297,8 +297,9 @@ them.
       @proxy_password = request_params[:proxy_password]
 
       @logger.info("Opening new #{@protocol.upcase} connection to #@server:#@port")
+
       @logger.info("Connecting to proxy #{@proxy_host}:#{@proxy_port} with username" +
-                   " #{@proxy_username}") unless @proxy_host.nil?
+                   " #{@proxy_username.inspect}") unless @proxy_host.nil?
 
       @http = Net::HTTP.new(@server, @port, @proxy_host, @proxy_port, @proxy_username,
                             @proxy_password)
