@@ -137,25 +137,46 @@ them.
      #  :raise_on_timeout                    # do not perform a retry if timeout is received (false by default)
     def initialize(params={})
       @params = params
+
+      #set up logging first
+      @logger = get_param(:logger) ||
+                (RAILS_DEFAULT_LOGGER if defined?(RAILS_DEFAULT_LOGGER)) ||
+                Logger.new(STDOUT)
+
+      env_proxy_host, env_proxy_port, env_proxy_username, env_proxy_password = get_proxy_info_for_env if ENV['HTTP_PROXY']
+
       @params[:http_connection_retry_count]  ||= @@params[:http_connection_retry_count]
       @params[:http_connection_open_timeout] ||= @@params[:http_connection_open_timeout]
       @params[:http_connection_read_timeout] ||= @@params[:http_connection_read_timeout]
       @params[:http_connection_retry_delay]  ||= @@params[:http_connection_retry_delay]
-      @params[:proxy_host] ||= @@params[:proxy_host] || ENV['HTTP_PROXY_HOST']
-      @params[:proxy_port] ||= @@params[:proxy_port] || ENV['HTTP_PROXY_PORT']
-      @params[:proxy_username] ||= @@params[:proxy_username] || ENV['HTTP_PROXY_USERNAME']
-      @params[:proxy_password] ||= @@params[:proxy_password] || ENV['HTTP_PROXY_PASSWORD']
+      @params[:proxy_host] ||= @@params[:proxy_host] || env_proxy_host
+      @params[:proxy_port] ||= @@params[:proxy_port] || env_proxy_port
+      @params[:proxy_username] ||= @@params[:proxy_username] || env_proxy_username
+      @params[:proxy_password] ||= @@params[:proxy_password] || env_proxy_password
+
       @http   = nil
       @server = nil
-      @logger = get_param(:logger) ||
-                (RAILS_DEFAULT_LOGGER if defined?(RAILS_DEFAULT_LOGGER)) ||
-                Logger.new(STDOUT)
       #--------------
       # Retry state - Keep track of errors on a per-server basis
       #--------------
       @state = {}  # retry state indexed by server: consecutive error count, error time, and error
+                                                                                                                                                                                                          
       @eof   = {}
     end
+
+    def get_proxy_info_for_env
+      parsed_uri = URI.parse(ENV['HTTP_PROXY'])
+      if parsed_uri.scheme == 'http'
+        return parsed_uri.host, parsed_uri.port, parsed_uri.user, parsed_uri.password
+      else
+        @logger.warn "Invalid protocol in ENV['HTTP_PROXY'] URI = #{ENV['HTTP_PROXY'].inspect} expecting 'http' got #{parsed_uri.scheme.inspect}"
+        return nil, nil, nil, nil
+      end
+    rescue Exception => e
+      @logger.warn "Error parsing ENV['HTTP_PROXY'] URI = #{ENV['HTTP_PROXY'].inspect}, with exception: #{e.message}"
+      return nil, nil, nil, nil
+    end
+    private :get_proxy_info_for_env
 
     def get_param(name, custom_options={})
       custom_options [name] || @params[name] || @@params[name]
