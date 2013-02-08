@@ -523,6 +523,7 @@ them.
 
           # We will be retrying the request, so reset the file pointer
           reset_fileptr_offset(request, mypos)
+          raise exception.new(e.message)  #Plan C remove when infinite retry if fixed
         end
       end
     end
