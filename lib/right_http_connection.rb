@@ -418,13 +418,14 @@ them.
       current_params = @params.merge(request_params)
       exception = get_param(:exception, current_params) || RuntimeError
 
+      # Re-establish the connection if any of auth params has changed
+      same_auth_params_as_before = SECURITY_PARAMS.select do |param|
+        request_params[param] && request_params[param] != get_param(param)
+      end.empty?
+
       # We save the offset here so that if we need to retry, we can return the file pointer to its initial position
       mypos = get_fileptr_offset(current_params)
       loop do
-        # Re-establish the connection if any of auth params has changed
-        same_auth_params_as_before = SECURITY_PARAMS.select do |param|
-          request_params[param] != get_param(param)
-        end.empty?
 
         current_params[:protocol] ||= (current_params[:port] == 443 ? 'https' : 'http')
         # (re)open connection to server if none exists or params has changed
@@ -523,7 +524,6 @@ them.
 
           # We will be retrying the request, so reset the file pointer
           reset_fileptr_offset(request, mypos)
-          raise exception.new(e.message)  #Plan C remove when infinite retry if fixed
         end
       end
     end
