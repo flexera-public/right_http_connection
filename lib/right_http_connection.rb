@@ -497,9 +497,9 @@ them.
           else
             raise e
           end
+
         rescue Timeout::Error, SocketError, SystemCallError, Interrupt => e  # See comment at bottom for the list of errors seen...
           finish(e.message)
-          
           if e.is_a?(Errno::ETIMEDOUT) || e.is_a?(Timeout::Error)
             # Omit retries if it was explicitly requested
             # #6481:
@@ -517,6 +517,7 @@ them.
 
           # We will be retrying the request, so reset the file pointer
           reset_fileptr_offset(request, mypos)
+          raise exception.new(e.message) if e.is_a?(SocketError)
         end
       end
     end
