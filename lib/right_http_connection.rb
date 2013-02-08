@@ -420,7 +420,7 @@ them.
 
       # Re-establish the connection if any of auth params has changed
       same_auth_params_as_before = SECURITY_PARAMS.select do |param|
-        request_params[param] && request_params[param] != get_param(param)
+        request_params[param] != get_param(param)
       end.empty?
 
       # We save the offset here so that if we need to retry, we can return the file pointer to its initial position
@@ -455,8 +455,8 @@ them.
           unless @http          &&
                  @http.started? &&
                  same_server_as_before
-            start(current_params)
             same_auth_params_as_before = true
+            start(current_params)
           end
 
           # Detect if the body is a streamable object like a file or socket.  If so, stream that
