@@ -303,6 +303,8 @@ them.
       end
     end
 
+    SECURITY_PARAMS = [:cert, :key, :cert_file, :key_file, :ca_file]
+
     # Start a fresh connection. The object closes any existing connection and
     # opens a new one.
     def start(request_params)
@@ -316,6 +318,10 @@ them.
       @proxy_port     = request_params[:proxy_port]
       @proxy_username = request_params[:proxy_username]
       @proxy_password = request_params[:proxy_password]
+      
+      SECURITY_PARAMS.each do |param_name|
+        @params[param_name] = request_params[param_name]
+      end
 
       @logger.info("Opening new #{@protocol.upcase} connection to #@server:#@port")
 
@@ -409,17 +415,17 @@ them.
 
 =end
     def request(request_params, &block)
-      # Re-establish the connection if any of auth params has changed
-      same_auth_params_as_before = [:cert, :key, :cert_file, :key_file, :ca_file].select do |param|
-        request_params[param] != get_param(param)
-      end.empty?
-
       current_params = @params.merge(request_params)
       exception = get_param(:exception, current_params) || RuntimeError
 
       # We save the offset here so that if we need to retry, we can return the file pointer to its initial position
       mypos = get_fileptr_offset(current_params)
       loop do
+        # Re-establish the connection if any of auth params has changed
+        same_auth_params_as_before = SECURITY_PARAMS.select do |param|
+          request_params[param] != get_param(param)
+        end.empty?
+
         current_params[:protocol] ||= (current_params[:port] == 443 ? 'https' : 'http')
         # (re)open connection to server if none exists or params has changed
         same_server_as_before = @server   == current_params[:server]   &&
@@ -517,7 +523,6 @@ them.
 
           # We will be retrying the request, so reset the file pointer
           reset_fileptr_offset(request, mypos)
-          raise exception.new(e.message) if e.is_a?(SocketError)
         end
       end
     end
