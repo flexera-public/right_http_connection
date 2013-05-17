@@ -114,6 +114,12 @@ server.mount_proc('/filename') {|req, resp|
   resp.body = File.open("filename").read
 }
 
+server.mount_proc('/squid/err_connect_fail') do |req, resp|
+  resp.status = 504
+  resp['X-Squid-Error'] = 'ERR_CONNECT_FAIL 110'
+  resp.body = ''
+end
+
 # trap signals to invoke shutdown cleanly
 ['INT', 'TERM'].each { |signal|
   trap(signal) { server.shutdown }
