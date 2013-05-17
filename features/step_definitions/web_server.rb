@@ -92,6 +92,12 @@ Given /^a URL that hangs all the time$/ do
   @expected_contents = "irrelevant"
 end
 
+Given /^a URL that returns a Squid ERR_CONNECT_FAIL header$/ do
+  Given "a really dumb web server"
+  @uri = URI.parse("http://127.0.0.1:7890/squid/err_connect_fail")
+  @expected_contents = "irrelevant"
+end
+
 Given /^a URL that fails intermittently$/ do
   pending "this seems to require custom server code"
 end
