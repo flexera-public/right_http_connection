@@ -95,7 +95,7 @@ module Net
       delete 'Transfer-Encoding'
       supply_default_content_type
       write_header(sock, ver, path) unless send_only == :body
-      sock.write(body)              unless send_only == :header
+      sock.write(body && body.to_s) unless send_only == :header
     end
 
     def send_request_with_body_stream(sock, ver, path, f, send_only=nil)
