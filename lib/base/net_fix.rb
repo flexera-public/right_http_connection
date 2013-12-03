@@ -162,6 +162,7 @@ module Net
         req.exec @socket, @curr_http_version, edit_path(req.path), send_only
         begin
           res = HTTPResponse.read_new(@socket)
+          res.decode_content = req.decode_content if RUBY_VERSION > '2.0'
           # if we expected 100-continue then send a body
           if res.is_a?(HTTPContinue) && send_only && req['content-length'].to_i > 0
             req.exec @socket, @curr_http_version, edit_path(req.path), :body
