@@ -30,6 +30,7 @@ module Net
   
   class BufferedIO #:nodoc:
     # Monkey-patch Net::BufferedIO to read > 1024 bytes from the socket at a time
+    # Only applied if RUBY_VERSION < 1.9.2
 
     # Default size (in bytes) of the max read from a socket into the user space read buffers for socket IO
     DEFAULT_SOCKET_READ_SIZE = 16*1024
@@ -47,10 +48,13 @@ module Net
       @@socket_read_size
     end
 
-    def rbuf_fill
-      timeout(@read_timeout) {
-        @rbuf << @io.sysread(@@socket_read_size)
-      }
+    # rbuf_fill was improved in Ruby 1.9.2. Only patch prior versions.
+    if RUBY_VERSION < '1.9.2'
+      def rbuf_fill
+        timeout(@read_timeout) {
+          @rbuf << @io.sysread(@@socket_read_size)
+        }
+      end
     end
   end
 
