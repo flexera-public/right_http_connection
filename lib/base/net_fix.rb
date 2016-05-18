@@ -22,12 +22,14 @@
 #
 #
 
-# Net::HTTP and Net::HTTPGenericRequest fixes to support 100-continue on 
+# Net::HTTP and Net::HTTPGenericRequest fixes to support 100-continue on
 # POST and PUT. The request must have 'expect' field set to '100-continue'.
+
+require 'timeout'
 
 
 module Net
-  
+
   class BufferedIO #:nodoc:
     # Monkey-patch Net::BufferedIO to read > 1024 bytes from the socket at a time
 
@@ -48,7 +50,7 @@ module Net
     end
 
     def rbuf_fill
-      timeout(@read_timeout) {
+      Timeout.timeout(@read_timeout) {
         @rbuf << @io.sysread(@@socket_read_size)
       }
     end
@@ -135,12 +137,12 @@ module Net
           end
         end
       end
-    end    
+    end
   end
 
 
   #-- Net::HTTP --
-  
+
   class HTTP
     def request(req, body = nil, &block)  # :yield: +response+
       unless started?
