@@ -452,6 +452,7 @@ them.
         begin
           request = current_params[:request]
           request['User-Agent'] = get_param(:user_agent, current_params) || ''
+          request['Accept-Encoding'] = 'identity' if RUBY_VERSION > '2.0' # prevent gzipped responses.. was getting 'buffer error' periodically
           unless @http          &&
                  @http.started? &&
                  same_server_as_before
