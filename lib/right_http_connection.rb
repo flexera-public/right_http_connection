@@ -505,9 +505,9 @@ them.
             raise e
           end
 
-        rescue Timeout::Error, SocketError, SystemCallError, Interrupt => e  # See comment at bottom for the list of errors seen...
+        rescue Timeout::Error, SocketError, SystemCallError, Interrupt, Net::HTTPFatalError => e  # See comment at bottom for the list of errors seen...
           finish(e.message)
-          if e.is_a?(Errno::ETIMEDOUT) || e.is_a?(Timeout::Error)
+          if e.is_a?(Errno::ETIMEDOUT) || e.is_a?(Timeout::Error) || e.is_a?(Net::HTTPFatalError)
             # Omit retries if it was explicitly requested
             # #6481:
             # ... When creating a resource in EC2 (instance, volume, snapshot, etc) it is undetermined what happened if the call times out.
