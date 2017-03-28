@@ -76,6 +76,15 @@ them.
     # Length of the post-error probationary period during which all requests will fail
     HTTP_CONNECTION_RETRY_DELAY   = 15  unless defined?(HTTP_CONNECTION_RETRY_DELAY)
 
+    # Proxy headers whose values should be translated to an equivalent Ruby exception.
+    # Since we don't expose proxy configuration through our Ruby interface, our clients
+    # are unaware that they are using a proxy and we must fake socket errors for them.
+    PROXY_FAILURES = {
+      'X-Squid-Error' => {
+        'ERR_CONNECT_FAIL 110' => Errno::ETIMEDOUT
+      }
+    }
+
     #--------------------
     # class methods
     #--------------------
@@ -468,6 +477,13 @@ them.
 
           error_reset
           eof_reset
+
+          # For certain responses coming through a proxy, simulate an equivalent
+          # socket exception.
+          if @proxy_host && proxy_exception = translate_proxy_response_to_exception(response)
+            raise proxy_exception
+          end
+
           return response
 
         # We treat EOF errors and the timeout/network errors differently.  Both
@@ -536,6 +552,29 @@ them.
       end
     ensure
       @http = nil
+    end
+
+    protected
+
+    # Given a Net::HTTPResponse, provide a suitable exception class to raise if necessary
+    # @param [Net::HTTPResponse] response
+    # @return [Exception] an exception to raise, if the response corresponds to a Ruby exception
+    # @return nil otherwise
+    def translate_proxy_response_to_exception(response)
+      result = nil
+
+      PROXY_FAILURES.each_pair do |header_name, value_map|
+        if (header_value = response[header_name])
+          value_map.each_pair do |value, exception|
+            if header_value == value
+              result = exception.new("Downstream proxy failed to complete request - #{header_name}: #{header_value}")
+              break
+            end
+          end
+        end
+      end
+
+      result
     end
 
   # Errors received during testing:

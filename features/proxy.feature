@@ -67,3 +67,10 @@ Feature: RightHTTPConnection can connect to a web server through a proxy
     When I request that URL using RightHTTPConnection
     Then I should get an exception
     And Exception message should have full url
+
+  Scenario: Squid failure translation,
+    Given a URL that returns a Squid ERR_CONNECT_FAIL header
+    And a proxy
+    When I request that URL using RightHTTPConnection
+    Then I should get an exception
+    And the proxy should have been used
