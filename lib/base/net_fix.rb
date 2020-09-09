@@ -25,6 +25,7 @@
 # Net::HTTP and Net::HTTPGenericRequest fixes to support 100-continue on 
 # POST and PUT. The request must have 'expect' field set to '100-continue'.
 
+require 'timeout'
 
 module Net
   
@@ -48,7 +49,7 @@ module Net
     end
 
     def rbuf_fill
-      timeout(@read_timeout) {
+      Timeout.timeout(@read_timeout) {
         @rbuf << @io.sysread(@@socket_read_size)
       }
     end

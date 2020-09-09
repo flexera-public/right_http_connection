@@ -5,9 +5,9 @@ require 'rake'
 require 'rake/clean'
 require 'rake/testtask'
 require 'rake/packagetask'
-require 'rake/gempackagetask'
-require 'rake/rdoctask'
-require 'rake/contrib/rubyforgepublisher'
+#require 'rake/gempackagetask'
+#require 'rake/rdoctask'
+#require 'rake/contrib/rubyforgepublisher'
 require 'rspec/core/rake_task'
 require 'cucumber/rake/task'
 require 'fileutils'
@@ -15,6 +15,8 @@ include FileUtils
 require File.join(File.dirname(__FILE__), 'lib', 'right_http_connection')
 
 Bundler::GemHelper.install_tasks
+
+=begin
 
 # == Gem == #
 
@@ -61,6 +63,7 @@ task :check_version do
     exit
   end
 end
+=end
 
 task :default => 'spec'
 
