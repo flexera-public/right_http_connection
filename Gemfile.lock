@@ -18,7 +18,7 @@ GEM
     gherkin (2.4.21)
       json (>= 1.4.6)
     json (2.3.1)
-    rake (11.3.0)
+    rake (13.0.1)
     rspec (2.99.0)
       rspec-core (~> 2.99.0)
       rspec-expectations (~> 2.99.0)
@@ -40,7 +40,7 @@ PLATFORMS
 DEPENDENCIES
   cucumber (~> 0.8)
   flexmock (~> 0.8.11)
-  rake (< 12)
+  rake (< 14)
   right_http_connection!
   rspec (~> 2.3)
   trollop (~> 1.16)

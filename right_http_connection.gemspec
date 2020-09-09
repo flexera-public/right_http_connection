@@ -40,7 +40,7 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = '>= 1.8.7'
   spec.require_path = 'lib'
 
-  spec.add_development_dependency('rake', '< 12')
+  spec.add_development_dependency('rake', '< 14')
   spec.add_development_dependency('rspec', "~> 2.3")
   spec.add_development_dependency('cucumber', "~> 0.8")
   spec.add_development_dependency('flexmock', "~> 0.8.11")
