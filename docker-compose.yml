@@ -1,0 +1,11 @@
+version: "3.8"
+services:
+  web:
+    build: .
+    command: bash -c "bundle exec rspec & bundle exec cucumber"
+    volumes:
+      - .:/code/Ruby-Docker
+      - /Users/cleicar/ssl/certs:/etc/nginx/certs
+    ports:
+        - 8081:80
+        - 443:443
