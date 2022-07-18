@@ -2,7 +2,6 @@ RightScale::HttpConnection
     by RightScale, Inc.
     www.RightScale.com
 
-This is a test
 == DESCRIPTION:
 
 Rightscale::HttpConnection is a robust HTTP/S library.  It implements a retry
