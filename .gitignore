@@ -8,3 +8,4 @@ pkg/
 /spec/ca/demoCA/serial.old
 /spec/ca/server.crt
 /spec/ca/server.key
+coverage
