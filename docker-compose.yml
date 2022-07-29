@@ -4,8 +4,7 @@ services:
     build: .
     command: bash -c "bundle exec rspec && bundle exec cucumber"
     volumes:
-      - .:/code/Ruby-Docker
-      - /Users/cleicar/ssl/certs:/etc/nginx/certs
+      - .:/code/right_http_connection
     ports:
         - 8081:80
         - 443:443

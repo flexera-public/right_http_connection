@@ -3,8 +3,8 @@ FROM ruby:2.1.9
 RUN apt-get update -qq \
 && apt-get install -y openssl
 
-ADD . /code/Ruby-Docker
-WORKDIR /code/Ruby-Docker
+ADD . /code/right_http_connection
+WORKDIR /code/right_http_connection
 
 # use the bundler version defined in the Gemfile.lock
 RUN gem install bundler -v 1.17.3
