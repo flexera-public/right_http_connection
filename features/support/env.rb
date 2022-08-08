@@ -21,6 +21,10 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
+require 'simplecov'
+
+SimpleCov.start
+
 require 'rubygems'
 require 'bundler/setup'
 $LOAD_PATH << File.expand_path('../../../lib', __FILE__)
